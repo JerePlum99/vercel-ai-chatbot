@@ -2,9 +2,35 @@ import { ChatRequestOptions, Message } from 'ai';
 import { PreviewMessage, ThinkingMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
 import { Overview } from './overview';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Vote } from '@/lib/db/schema';
 import equal from 'fast-deep-equal';
+import { ExtendedMessage } from '@/lib/ai/types';
+
+// Create a type adapter function to convert standard AI SDK Message to our ExtendedMessage
+const adaptMessageToExtendedMessage = (message: Message): ExtendedMessage => {
+  // If the message already has parts, assume it's already an ExtendedMessage
+  if ('parts' in message) {
+    return message as unknown as ExtendedMessage;
+  }
+  
+  // Create a basic ExtendedMessage from the standard Message
+  const extendedMessage: ExtendedMessage = {
+    id: message.id,
+    role: message.role,
+    content: typeof message.content === 'string' ? message.content : '',
+    parts: typeof message.content === 'string' 
+      ? [{ type: 'text', text: message.content }] 
+      : []
+  };
+
+  // Add attachments if they exist
+  if (message.experimental_attachments) {
+    extendedMessage.experimental_attachments = message.experimental_attachments;
+  }
+
+  return extendedMessage;
+};
 
 interface MessagesProps {
   chatId: string;
@@ -19,6 +45,7 @@ interface MessagesProps {
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  dataStream?: any;
 }
 
 function PureMessages({
@@ -29,9 +56,31 @@ function PureMessages({
   setMessages,
   reload,
   isReadonly,
+  dataStream
 }: MessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
+
+  // Convert all standard AI SDK Messages to our ExtendedMessage format
+  const extendedMessages = useMemo(() => 
+    messages.map(adaptMessageToExtendedMessage), 
+    [messages]
+  );
+
+  // Wrapper for setMessages to handle type conversion
+  const handleSetExtendedMessages = (
+    newMessages: ExtendedMessage[] | ((messages: ExtendedMessage[]) => ExtendedMessage[])
+  ) => {
+    if (typeof newMessages === 'function') {
+      setMessages((prevMessages) => {
+        const extendedPrevMessages = prevMessages.map(adaptMessageToExtendedMessage);
+        const result = newMessages(extendedPrevMessages);
+        return result as unknown as Message[];
+      });
+    } else {
+      setMessages(newMessages as unknown as Message[]);
+    }
+  };
 
   return (
     <div
@@ -40,7 +89,7 @@ function PureMessages({
     >
       {messages.length === 0 && <Overview />}
 
-      {messages.map((message, index) => (
+      {extendedMessages.map((message, index) => (
         <PreviewMessage
           key={message.id}
           chatId={chatId}
@@ -51,9 +100,10 @@ function PureMessages({
               ? votes.find((vote) => vote.messageId === message.id)
               : undefined
           }
-          setMessages={setMessages}
+          setMessages={handleSetExtendedMessages}
           reload={reload}
           isReadonly={isReadonly}
+          dataStream={dataStream}
         />
       ))}
 
@@ -77,6 +127,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (!equal(prevProps.dataStream, nextProps.dataStream)) return false;
 
   return true;
 });

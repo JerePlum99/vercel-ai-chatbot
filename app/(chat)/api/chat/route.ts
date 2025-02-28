@@ -44,17 +44,18 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   // Extract chat data from the request body
   const {
-    id,          // Unique identifier for the chat session
-    messages,    // Array of chat messages
-    selectedChatModel, // The AI model selected for this chat
-  }: { id: string; messages: Array<Message>; selectedChatModel: string } =
-    await request.json();
+    id: chatId,
+    messages,
+    selectedChatModel
+  } = await request.json();
 
   // Verify user authentication
   const session = await auth();
-  if (!session || !session.user || !session.user.id) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
+
+  const userId = session.user.id;
 
   // Get the most recent user message for processing
   const userMessage = getMostRecentUserMessage(messages);
@@ -63,59 +64,52 @@ export async function POST(request: Request) {
   }
 
   // Create or retrieve chat session
-  const chat = await getChatById({ id });
+  const chat = await getChatById({ id: chatId });
   if (!chat) {
     // Generate a title for new chat sessions based on the first message
-    const title = await generateTitleFromUserMessage({ message: userMessage });
-    await saveChat({ id, userId: session.user.id, title });
+    let title = 'New Chat';
+    try {
+      const generatedTitle = await generateTitleFromUserMessage({ message: userMessage });
+      title = generatedTitle || title;
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+    }
+    await saveChat({ id: chatId, userId, title });
   }
 
   // Save the user's message to the database
   await saveMessages({
-    messages: [{ ...userMessage, createdAt: new Date(), chatId: id }],
+    messages: [{ 
+      id: userMessage.id, 
+      chatId, 
+      role: userMessage.role,
+      content: userMessage.content,
+      createdAt: new Date() 
+    }],
   });
 
   // Create and return a streaming response
   return createDataStreamResponse({
-    execute: (dataStream) => {
+    execute: async (dataStream) => {
       // Configure and initiate the AI text stream
-      const result = streamText({
-        // Select the AI model based on user preference
+      const result = await streamText({
         model: myProvider.languageModel(selectedChatModel),
-        // Set the system prompt for the AI
         system: systemPrompt({ selectedChatModel }),
         messages,
-        maxSteps: 5,
-        // Configure available AI tools based on the model
-        experimental_activeTools:
-          selectedChatModel === 'chat-model-reasoning'
-            ? []  // No tools for reasoning model
-            : [   // Standard tools for other models
-                'getWeather',
-                'createDocument',
-                'updateDocument',
-                'requestSuggestions',
-                'getCompanyProfile',
-                'exaSearch',
-                'exaSearchAndContents',
-                'exaFindSimilar',
-                'exaGetContents',
-                'exaAnswer'
-              ],
-        // Configure stream processing
-        experimental_transform: smoothStream({ chunking: 'word' }), // Word-by-word streaming
-        experimental_generateMessageId: generateUUID,  // Unique ID for each message
+        maxSteps: 10,
+        experimental_transform: smoothStream({ chunking: 'word' }),
+        experimental_generateMessageId: generateUUID,
+        experimental_toolCallStreaming: true,
         
-        // Tool definitions with access to session and dataStream
         tools: {
-          getWeather, // Weather information tool
-          createDocument: createDocument({ session, dataStream }), // Document creation tool
-          updateDocument: updateDocument({ session, dataStream }), // Document update tool
-          requestSuggestions: requestSuggestions({  // Suggestions tool
+          getWeather,
+          createDocument: createDocument({ session, dataStream }),
+          updateDocument: updateDocument({ session, dataStream }),
+          requestSuggestions: requestSuggestions({
             session,
             dataStream,
           }),
-          getCompanyProfile, // Five Elms company profile tool
+          getCompanyProfile,
           exaSearch,
           exaSearchAndContents,
           exaFindSimilar,
@@ -123,49 +117,41 @@ export async function POST(request: Request) {
           exaAnswer
         },
 
-        // Handle stream completion
         onFinish: async ({ response, reasoning }) => {
-          if (session.user?.id) {
-            try {
-              // Clean and prepare messages for storage
-              const sanitizedResponseMessages = sanitizeResponseMessages({
-                messages: response.messages,
-                reasoning,
-              });
+          if (!session.user?.id) return;
+          
+          try {
+            // Clean and prepare messages for storage
+            const sanitizedResponseMessages = sanitizeResponseMessages({
+              messages: response.messages,
+              reasoning,
+            });
 
-              // Save AI responses to the database
-              await saveMessages({
-                messages: sanitizedResponseMessages.map((message) => {
-                  return {
-                    id: message.id,
-                    chatId: id,
-                    role: message.role,
-                    content: message.content,
-                    createdAt: new Date(),
-                  };
-                }),
-              });
-            } catch (error) {
-              console.error('Failed to save chat');
-            }
+            // Save AI responses to the database with properly formatted content
+            await saveMessages({
+              messages: sanitizedResponseMessages.map((message) => {
+                return {
+                  id: message.id,
+                  chatId,
+                  role: message.role,
+                  content: message.content,
+                  createdAt: new Date(),
+                };
+              }),
+            });
+          } catch (error) {
+            console.error('Failed to save chat:', error);
           }
-        },
-
-        // Enable telemetry for monitoring
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'stream-text',
         },
       });
 
-      // Process and merge the stream
       result.consumeStream();
       result.mergeIntoDataStream(dataStream, {
         sendReasoning: true, // Include AI reasoning in the response
       });
     },
     onError: () => {
-      return 'Oops, an error occured!';
+      return 'Oops, an error occurred!';
     },
   });
 }

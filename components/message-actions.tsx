@@ -1,9 +1,9 @@
-import type { Message } from 'ai';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import type { Vote } from '@/lib/db/schema';
+import type { ExtendedMessage } from '@/lib/ai/types';
 
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from './ui/button';
@@ -23,7 +23,7 @@ export function PureMessageActions({
   isLoading,
 }: {
   chatId: string;
-  message: Message;
+  message: ExtendedMessage;
   vote: Vote | undefined;
   isLoading: boolean;
 }) {
@@ -32,142 +32,89 @@ export function PureMessageActions({
 
   if (isLoading) return null;
   if (message.role === 'user') return null;
-  if (message.toolInvocations && message.toolInvocations.length > 0)
-    return null;
+  if (message.parts?.some(part => part.type === 'tool-invocation')) return null;
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <div className="flex flex-row gap-2">
+    <div className="flex flex-row gap-2 items-center">
+      <Button
+        variant="ghost"
+        className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+        onClick={async () => {
+          await copyToClipboard(message.content as string);
+          toast.success('Message copied to clipboard!');
+        }}
+      >
+        <CopyIcon />
+      </Button>
+
+      <div className="flex flex-row gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="py-1 px-2 h-fit text-muted-foreground"
-              variant="outline"
+              variant="ghost"
+              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
               onClick={async () => {
-                await copyToClipboard(message.content as string);
-                toast.success('Copied to clipboard!');
+                await fetch('/api/vote', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    chatId,
+                    messageId: message.id,
+                    type: vote?.type === 'up' ? null : 'up',
+                  }),
+                });
+
+                mutate(`/api/vote?chatId=${chatId}`);
               }}
             >
-              <CopyIcon />
+              <ThumbUpIcon
+                className={vote?.type === 'up' ? 'text-green-500' : ''}
+              />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Copy</TooltipContent>
+          <TooltipContent>This was helpful</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
-              disabled={vote?.isUpvoted}
-              variant="outline"
+              variant="ghost"
+              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
               onClick={async () => {
-                const upvote = fetch('/api/vote', {
+                await fetch('/api/vote', {
                   method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
                   body: JSON.stringify({
                     chatId,
                     messageId: message.id,
-                    type: 'up',
+                    type: vote?.type === 'down' ? null : 'down',
                   }),
                 });
 
-                toast.promise(upvote, {
-                  loading: 'Upvoting Response...',
-                  success: () => {
-                    mutate<Array<Vote>>(
-                      `/api/vote?chatId=${chatId}`,
-                      (currentVotes) => {
-                        if (!currentVotes) return [];
-
-                        const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
-                        );
-
-                        return [
-                          ...votesWithoutCurrent,
-                          {
-                            chatId,
-                            messageId: message.id,
-                            isUpvoted: true,
-                          },
-                        ];
-                      },
-                      { revalidate: false },
-                    );
-
-                    return 'Upvoted Response!';
-                  },
-                  error: 'Failed to upvote response.',
-                });
+                mutate(`/api/vote?chatId=${chatId}`);
               }}
             >
-              <ThumbUpIcon />
+              <ThumbDownIcon
+                className={vote?.type === 'down' ? 'text-red-500' : ''}
+              />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Upvote Response</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
-              variant="outline"
-              disabled={vote && !vote.isUpvoted}
-              onClick={async () => {
-                const downvote = fetch('/api/vote', {
-                  method: 'PATCH',
-                  body: JSON.stringify({
-                    chatId,
-                    messageId: message.id,
-                    type: 'down',
-                  }),
-                });
-
-                toast.promise(downvote, {
-                  loading: 'Downvoting Response...',
-                  success: () => {
-                    mutate<Array<Vote>>(
-                      `/api/vote?chatId=${chatId}`,
-                      (currentVotes) => {
-                        if (!currentVotes) return [];
-
-                        const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
-                        );
-
-                        return [
-                          ...votesWithoutCurrent,
-                          {
-                            chatId,
-                            messageId: message.id,
-                            isUpvoted: false,
-                          },
-                        ];
-                      },
-                      { revalidate: false },
-                    );
-
-                    return 'Downvoted Response!';
-                  },
-                  error: 'Failed to downvote response.',
-                });
-              }}
-            >
-              <ThumbDownIcon />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Downvote Response</TooltipContent>
+          <TooltipContent>This was not helpful</TooltipContent>
         </Tooltip>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }
 
 export const MessageActions = memo(
   PureMessageActions,
   (prevProps, nextProps) => {
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
-
+    if (!equal(prevProps.vote, nextProps.vote)) return false;
     return true;
   },
 );

@@ -64,7 +64,11 @@ export const vote = pgTable(
   },
 );
 
-export type Vote = InferSelectModel<typeof vote>;
+export type Vote = {
+  chatId: string;
+  messageId: string;
+  type: 'up' | 'down' | null;
+};
 
 export const document = pgTable(
   'Document',

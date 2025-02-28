@@ -41,6 +41,7 @@ export function Chat({
     isLoading,
     stop,
     reload,
+    data
   } = useChat({
     id,
     body: { id, selectedChatModel: selectedChatModel },
@@ -52,8 +53,8 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
-      toast.error('An error occured, please try again!');
-    },
+      toast.error('An error occurred, please try again!');
+    }
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
@@ -83,6 +84,7 @@ export function Chat({
           reload={reload}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
+          dataStream={data}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">

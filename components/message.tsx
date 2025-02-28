@@ -1,11 +1,23 @@
 'use client';
 
-import type { ChatRequestOptions, Message } from 'ai';
+import type { ChatRequestOptions } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
+import equal from 'fast-deep-equal';
 
 import type { Vote } from '@/lib/db/schema';
+import type { 
+  ExtendedMessage, 
+  AnyUIPart, 
+  ToolInvocationUIPart,
+  WeatherAtLocation,
+  ReasoningUIPart,
+  DocumentResult
+} from '@/lib/ai/types';
+import type { CompanyResponse } from '@FiveElmsCapital/five-elms-ts-sdk';
+import type { SearchResponse, AnswerResponse } from '@/lib/types/exa';
+import type { ArtifactKind } from './artifact';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
 import {
@@ -25,7 +37,6 @@ import {
   ExaFindSimilarResult,
   ExaGetContentsResult 
 } from './tools/default/exa-search';
-import equal from 'fast-deep-equal';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -36,6 +47,32 @@ import { MessageReasoning } from './message-reasoning';
 // Define which tools should appear below the message (artifact manipulation tools)
 const ARTIFACT_TOOLS = ['createDocument', 'updateDocument', 'requestSuggestions'];
 
+// Helper function to check if result is of a specific type
+const isWeatherResult = (result: any): result is WeatherAtLocation => {
+  return result && 'latitude' in result && 'longitude' in result;
+};
+
+const isCompanyProfileResult = (result: any): result is { profile: CompanyResponse; summary: string } => {
+  return result && 'profile' in result && 'summary' in result;
+};
+
+const isSearchResponse = (result: any): result is SearchResponse => {
+  return result && 'results' in result;
+};
+
+const isAnswerResponse = (result: any): result is AnswerResponse => {
+  return result && 'answer' in result && 'sources' in result;
+};
+
+const isDocumentResult = (result: any): result is DocumentResult => {
+  return result && 'id' in result && 'title' in result && 'kind' in result;
+};
+
+// Helper to check if args has title property
+const hasTitle = (args: Record<string, unknown>): args is { title: string } => {
+  return args && typeof args.title === 'string';
+};
+
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -44,29 +81,48 @@ const PurePreviewMessage = ({
   setMessages,
   reload,
   isReadonly,
+  dataStream,
 }: {
   chatId: string;
-  message: Message;
+  message: ExtendedMessage;
   vote: Vote | undefined;
   isLoading: boolean;
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
+    messages: ExtendedMessage[] | ((messages: ExtendedMessage[]) => ExtendedMessage[]),
   ) => void;
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  dataStream?: any;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
-  // Separate tool invocations into information tools and artifact tools
-  const toolInvocations = message.toolInvocations || [];
-  const artifactTools = toolInvocations.filter(tool => 
-    ARTIFACT_TOOLS.includes(tool.toolName)
+  // Extract tool calls from parts property
+  const toolCalls = message.parts?.filter(
+    (part): part is ToolInvocationUIPart => part.type === 'tool-invocation'
+  ) || [];
+  
+  // Separate tool calls into information tools and artifact tools
+  const artifactTools = toolCalls.filter(tool => 
+    ARTIFACT_TOOLS.includes(tool.toolInvocation.toolName)
   );
-  const infoTools = toolInvocations.filter(tool => 
-    !ARTIFACT_TOOLS.includes(tool.toolName)
+  const infoTools = toolCalls.filter(tool => 
+    !ARTIFACT_TOOLS.includes(tool.toolInvocation.toolName)
   );
+
+  // Find reasoning part if it exists
+  const reasoningPart = message.parts?.find(
+    (part): part is ReasoningUIPart => part.type === 'reasoning'
+  );
+
+  // Check for streaming tool calls in dataStream
+  useEffect(() => {
+    if (dataStream && message.id === dataStream.id) {
+      // The current message is being updated with streaming data
+      console.log('Streaming data update for message:', message.id);
+    }
+  }, [dataStream, message.id]);
 
   return (
     <AnimatePresence>
@@ -95,24 +151,47 @@ const PurePreviewMessage = ({
             {/* Information tools that appear above content */}
             {infoTools.length > 0 && (
               <div className="flex flex-col gap-4">
-                {infoTools.map((toolInvocation) => {
-                  const { toolName, toolCallId, state, args } = toolInvocation;
+                {infoTools.map((toolCall) => {
+                  const { toolName, toolCallId, state, args, result } = toolCall.toolInvocation;
 
-                  if (state === 'result') {
-                    const { result } = toolInvocation;
+                  // Handle partial-call state (tool is being generated)
+                  if (state === 'partial-call') {
+                    return (
+                      <div key={toolCallId} className="animate-pulse">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="animate-spin"><LoaderIcon size={16} /></span>
+                          Calling {toolName}...
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // Handle call state (tool call is complete but not executed)
+                  if (state === 'call') {
+                    return (
+                      <div key={toolCallId} className="animate-pulse">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="animate-spin"><LoaderIcon size={16} /></span>
+                          Running {toolName}...
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (state === 'result' && result) {
                     return (
                       <div key={toolCallId}>
-                        {toolName === 'getWeather' ? (
+                        {toolName === 'getWeather' && isWeatherResult(result) ? (
                           <Weather weatherAtLocation={result} />
-                        ) : toolName === 'getCompanyProfile' ? (
+                        ) : toolName === 'getCompanyProfile' && isCompanyProfileResult(result) ? (
                           <CompanyProfile profile={result} />
                         ) : toolName === 'exaSearch' || toolName === 'exaSearchAndContents' ? (
-                          <ExaSearchResult title="Web Search Results" response={result} />
+                          isSearchResponse(result) && <ExaSearchResult title="Web Search Results" response={result} />
                         ) : toolName === 'exaFindSimilar' ? (
-                          <ExaFindSimilarResult title="Similar Pages" response={result} />
+                          isSearchResponse(result) && <ExaFindSimilarResult title="Similar Pages" response={result} />
                         ) : toolName === 'exaGetContents' ? (
-                          <ExaGetContentsResult title="Page Contents" response={result} />
-                        ) : toolName === 'exaAnswer' ? (
+                          isSearchResponse(result) && <ExaGetContentsResult title="Page Contents" response={result} />
+                        ) : toolName === 'exaAnswer' && isAnswerResponse(result) ? (
                           <ExaAnswerResult title="AI Answer" answer={result.answer} sources={result.sources} />
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
@@ -152,14 +231,15 @@ const PurePreviewMessage = ({
               </div>
             )}
 
-            {message.reasoning && (
+            {/* Display reasoning if present in parts */}
+            {reasoningPart && (
               <MessageReasoning
                 isLoading={isLoading}
-                reasoning={message.reasoning}
+                reasoning={reasoningPart.reasoning}
               />
             )}
 
-            {(message.content || message.reasoning) && mode === 'view' && (
+            {(typeof message.content === 'string' || reasoningPart) && mode === 'view' && (
               <div className="flex flex-row gap-2 items-start">
                 {message.role === 'user' && !isReadonly && (
                   <Tooltip>
@@ -182,7 +262,7 @@ const PurePreviewMessage = ({
                   'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                     message.role === 'user',
                 })}>
-                  <Markdown>{message.content as string}</Markdown>
+                  {typeof message.content === 'string' && <Markdown>{message.content}</Markdown>}
                 </div>
               </div>
             )}
@@ -192,9 +272,9 @@ const PurePreviewMessage = ({
                 <div className="size-8" />
                 <MessageEditor
                   key={message.id}
-                  message={message}
+                  message={message as any} // Temporary type cast to fix linter error
                   setMode={setMode}
-                  setMessages={setMessages}
+                  setMessages={setMessages as any} // Temporary type cast to fix linter error
                   reload={reload}
                 />
               </div>
@@ -203,25 +283,51 @@ const PurePreviewMessage = ({
             {/* Artifact tools that appear below content */}
             {artifactTools.length > 0 && (
               <div className="flex flex-col gap-4">
-                {artifactTools.map((toolInvocation) => {
-                  const { toolName, toolCallId, state, args } = toolInvocation;
+                {artifactTools.map((toolCall) => {
+                  const { toolName, toolCallId, state, args, result } = toolCall.toolInvocation;
 
-                  if (state === 'result') {
-                    const { result } = toolInvocation;
+                  // Handle partial-call state (tool is being generated)
+                  if (state === 'partial-call') {
+                    return (
+                      <div key={toolCallId} className="animate-pulse">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="animate-spin"><LoaderIcon size={16} /></span>
+                          Preparing document...
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // Handle call state (tool call is complete but not executed)
+                  if (state === 'call') {
+                    return (
+                      <div key={toolCallId} className="animate-pulse">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="animate-spin"><LoaderIcon size={16} /></span>
+                          {toolName === 'createDocument' ? 'Creating document...' :
+                           toolName === 'updateDocument' ? 'Updating document...' :
+                           toolName === 'requestSuggestions' ? 'Getting suggestions...' :
+                           `Processing ${toolName}...`}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (state === 'result' && result) {
                     return (
                       <div key={toolCallId}>
-                        {toolName === 'createDocument' ? (
+                        {toolName === 'createDocument' && isDocumentResult(result) ? (
                           <DocumentPreview
                             isReadonly={isReadonly}
                             result={result}
                           />
-                        ) : toolName === 'updateDocument' ? (
+                        ) : toolName === 'updateDocument' && isDocumentResult(result) ? (
                           <DocumentToolResult
                             type="update"
                             result={result}
                             isReadonly={isReadonly}
                           />
-                        ) : toolName === 'requestSuggestions' ? (
+                        ) : toolName === 'requestSuggestions' && isDocumentResult(result) ? (
                           <DocumentToolResult
                             type="request-suggestions"
                             result={result}
@@ -235,13 +341,13 @@ const PurePreviewMessage = ({
                     <div key={toolCallId}>
                       {toolName === 'createDocument' ? (
                         <DocumentPreview isReadonly={isReadonly} args={args} />
-                      ) : toolName === 'updateDocument' ? (
+                      ) : toolName === 'updateDocument' && hasTitle(args) ? (
                         <DocumentToolCall
                           type="update"
                           args={args}
                           isReadonly={isReadonly}
                         />
-                      ) : toolName === 'requestSuggestions' ? (
+                      ) : toolName === 'requestSuggestions' && hasTitle(args) ? (
                         <DocumentToolCall
                           type="request-suggestions"
                           args={args}
@@ -270,24 +376,47 @@ const PurePreviewMessage = ({
   );
 };
 
+// This custom equality function significantly boosts rendering performance
+// by avoiding unnecessary re-renders when message content hasn't changed
+const areEqual = (prevProps: {
+  message: ExtendedMessage;
+  isLoading?: boolean;
+  dataStream?: any;
+  vote?: Vote;
+}, nextProps: {
+  message: ExtendedMessage;
+  isLoading?: boolean;
+  dataStream?: any;
+  vote?: Vote;
+}) => {
+  // Compare primary message properties
+  if (prevProps.message.id !== nextProps.message.id) return false;
+  if (prevProps.message.role !== nextProps.message.role) return false;
+  if (prevProps.message.content !== nextProps.message.content) return false;
+  
+  // Compare parts containing text content
+  const prevText = prevProps.message.parts?.filter(p => p.type === 'text')?.map(p => p.text) || [];
+  const nextText = nextProps.message.parts?.filter(p => p.type === 'text')?.map(p => p.text) || [];
+  if (!equal(prevText, nextText)) return false;
+  
+  // Compare parts containing tool calls
+  const prevTools = prevProps.message.parts?.filter(p => p.type === 'tool-invocation') || [];
+  const nextTools = nextProps.message.parts?.filter(p => p.type === 'tool-invocation') || [];
+  if (!equal(prevTools, nextTools)) return false;
+  
+  // Compare vote and loading status
+  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (!equal(prevProps.vote, nextProps.vote)) return false;
+  
+  // Compare dataStream
+  if (!equal(prevProps.dataStream, nextProps.dataStream)) return false;
+  
+  return true;
+};
+
 export const PreviewMessage = memo(
   PurePreviewMessage,
-  (prevProps, nextProps) => {
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.message.reasoning !== nextProps.message.reasoning)
-      return false;
-    if (prevProps.message.content !== nextProps.message.content) return false;
-    if (
-      !equal(
-        prevProps.message.toolInvocations,
-        nextProps.message.toolInvocations,
-      )
-    )
-      return false;
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
-
-    return true;
-  },
+  areEqual
 );
 
 export const ThinkingMessage = () => {
