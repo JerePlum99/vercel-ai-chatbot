@@ -1,4 +1,4 @@
-import type { Message as AIMessage } from 'ai';
+import type { Message as AIMessage, Message } from 'ai';
 import type { CompanyResponse } from '@FiveElmsCapital/five-elms-ts-sdk';
 import type { SearchResponse, SearchAndContentsResponse, AnswerResponse } from '@/lib/types/exa';
 

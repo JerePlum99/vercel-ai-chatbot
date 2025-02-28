@@ -120,7 +120,8 @@ export function convertToUIMessages(
               toolCallId: content.toolCallId!,
               toolName: content.toolName!,
               args: content.args || {},
-              state: 'call',
+              state: 'result',
+              result: content.result
             }
           });
         } else if (content.type === 'reasoning' && content.reasoning) {
