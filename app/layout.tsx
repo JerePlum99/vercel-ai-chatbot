@@ -63,8 +63,10 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Toaster position="top-center" />
-          {children}
+          <div className="flex flex-col min-h-screen">
+            <Toaster position="top-center" />
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>
