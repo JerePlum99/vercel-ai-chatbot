@@ -62,7 +62,7 @@ export function AppNav({ user }: { user: User | undefined }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="rounded-full h-8 w-8 p-0">
                   <Image
-                    src={`https://avatar.vercel.sh/${user.email}`}
+                    src={user.image || `https://avatar.vercel.sh/${user.email}`}
                     alt={user.email ?? 'User Avatar'}
                     width={32}
                     height={32}
