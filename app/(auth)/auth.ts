@@ -55,6 +55,10 @@ export const {
 
       if (profile) {
         token.email = profile.email || null;
+        // Add Google profile picture if available
+        if ('picture' in profile) {
+          token.picture = profile.picture;
+        }
       }
       if (user) {
         token.id = user.id;
@@ -64,6 +68,10 @@ export const {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        // Add profile picture to session if available
+        if (token.picture) {
+          session.user.image = token.picture as string;
+        }
       }
       return session;
     },
