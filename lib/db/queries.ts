@@ -40,7 +40,7 @@ export async function createUser(email: string, password: string) {
   const hash = hashSync(password, salt);
 
   try {
-    return await db.insert(user).values({ email, password: hash });
+    return await db.insert(user).values({ email, password: hash, is_admin: false });
   } catch (error) {
     console.error('Failed to create user in database');
     throw error;
@@ -48,7 +48,7 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function createSSOUser(id: string, email: string, name: string, password: string = 'N/A') {
-  return await db.insert(user).values({ id, email, name, password });
+  return await db.insert(user).values({ id, email, name, password, is_admin: false });
 }
 
 export async function saveChat({
