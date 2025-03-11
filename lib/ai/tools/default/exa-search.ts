@@ -17,9 +17,9 @@ import {
 } from '@/lib/clients/exa';
 
 export const exaSearch = tool({
-  description: "Search the web for current, factual information. Best for: finding recent information, verifying claims, researching topics, or gathering data from multiple sources.",
+  description: "Search the web to get a list of relevant URLs and sources. Use this ONLY when the user specifically asks for a list of sources. For research, fact-checking, or answering questions, use searchAndContents instead.",
   parameters: z.object({
-    query: z.string().min(1).describe("The search query to find relevant information. Be specific and include key terms."),
+    query: z.string().min(1).describe("The search query to find relevant sources. Be specific and include key terms."),
     options: searchOptionsSchema.optional()
   }),
   execute: async ({ query, options }): Promise<SearchResponse> => {
@@ -57,7 +57,7 @@ export const exaFindSimilar = tool({
 });
 
 export const exaGetContents = tool({
-  description: "Retrieve and process content from specified URLs.",
+  description: "Retrieve and process content from specified URLs. Use after exaSearch when you need to analyze the content of specific URLs.",
   parameters: z.object({
     urls: z.array(z.string().url()),
     options: contentOptionsSchema.optional()
@@ -77,7 +77,7 @@ export const exaGetContents = tool({
 });
 
 export const exaAnswer = tool({
-  description: "Generate an answer from search results using Exa.",
+  description: "Generate an answer from search results using Exa. Note: For most question-answering tasks, prefer using searchAndContents which provides both sources and content for more accurate responses.",
   parameters: z.object({
     query: z.string(),
     options: answerOptionsSchema.optional()
@@ -97,7 +97,7 @@ export const exaAnswer = tool({
 });
 
 export const exaSearchAndContents = tool({
-  description: "Perform a search and retrieve content in a single call. Useful when you need both search results and their contents.",
+  description: "Primary tool for research, fact-checking, and answering questions. Performs a search and retrieves content in a single call. Use this instead of basic search when you need to analyze content, verify facts, or answer questions based on source material.",
   parameters: z.object({
     query: z.string().min(1).describe("The search query"),
     options: searchAndContentsOptionsSchema.optional()
