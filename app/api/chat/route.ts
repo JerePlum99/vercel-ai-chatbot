@@ -33,9 +33,10 @@ import {
   exaGetContents,
   exaAnswer 
 } from '@/lib/ai/tools/default/exa-search';
+import { deepResearch } from '@/lib/ai/tools/default/deep-research';
 
 // Maximum duration for the API route execution in seconds
-export const maxDuration = 60;
+export const maxDuration = 300; // Increase to 5 minutes to accommodate deep research
 
 /**
  * POST handler for the chat API endpoint
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
         // Set the system prompt for the AI
         system: systemPrompt({ selectedChatModel }),
         messages,
-        maxSteps: 5,
+        maxSteps: 10,
         // Configure available AI tools based on the model
         experimental_activeTools:
           selectedChatModel === 'chat-model-reasoning'
@@ -100,7 +101,8 @@ export async function POST(request: Request) {
                 'exaSearchAndContents',
                 'exaFindSimilar',
                 'exaGetContents',
-                'exaAnswer'
+                'exaAnswer',
+                'deepResearch'
               ],
         // Configure stream processing
         experimental_transform: smoothStream({ chunking: 'word' }), // Word-by-word streaming
@@ -108,19 +110,20 @@ export async function POST(request: Request) {
         
         // Tool definitions with access to session and dataStream
         tools: {
-          getWeather, // Weather information tool
-          createDocument: createDocument({ session, dataStream }), // Document creation tool
-          updateDocument: updateDocument({ session, dataStream }), // Document update tool
-          requestSuggestions: requestSuggestions({  // Suggestions tool
+          getWeather, 
+          createDocument: createDocument({ session, dataStream }), 
+          updateDocument: updateDocument({ session, dataStream }), 
+          requestSuggestions: requestSuggestions({
             session,
             dataStream,
           }),
-          getCompanyProfile, // Five Elms company profile tool
+          getCompanyProfile, 
           exaSearch,
           exaSearchAndContents,
           exaFindSimilar,
           exaGetContents,
-          exaAnswer
+          exaAnswer,
+          deepResearch: deepResearch({ dataStream, session })
         },
 
         // Handle stream completion

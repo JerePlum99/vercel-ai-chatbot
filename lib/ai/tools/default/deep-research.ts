@@ -2,15 +2,11 @@
 import { tool, DataStreamWriter, generateText } from 'ai';
 import { z } from 'zod';
 import { 
-  exaSearch, 
-  exaGetContents,
-  exaSearchAndContents
-} from './exa-search';
-import { 
   getExaClient
 } from '@/lib/clients/exa';
 import type { ContentOptions, ResultWithContent, SearchResponse } from '@/lib/types/exa';
 import { openai } from '@ai-sdk/openai';
+import { Session } from 'next-auth';
 
 // Reasonng model for analysis
 const reasoningModel = openai('o3-mini');
@@ -18,6 +14,7 @@ const reasoningModel = openai('o3-mini');
 // Props interface for deep research tool
 interface DeepResearchProps {
   dataStream: DataStreamWriter;
+  session: Session;
   onFinish?: (content: { 
     text: string;
     format: string;
@@ -30,7 +27,7 @@ interface DeepResearchProps {
  * Deep Research tool using Exa search and content extraction
  * Performs multi-step research with analysis and synthesis
  */
-export const deepResearch = ({ dataStream, onFinish }: DeepResearchProps) => 
+export const deepResearch = ({ dataStream, session, onFinish }: DeepResearchProps) => 
   tool({
     description: 'Perform deep research on a topic using an AI agent that coordinates search, extract, and analysis tools with reasoning steps. After research completes, you should either: 1) If createArtifact is true, call the createDocument tool with the research content to save it as a document, or 2) If createArtifact is false, include the full research content directly in your response. Never just provide a link to a report without either creating a document or showing the content.',
     parameters: z.object({
@@ -301,7 +298,7 @@ export const deepResearch = ({ dataStream, onFinish }: DeepResearchProps) =>
         // Use the Exa client directly
         const client = getExaClient();
         const searchAndContentsResult = await client.searchAndContents(searchTopic, {
-          numResults: 5,
+          numResults: 3,
           text: true,
           summary: true,
           highlights: true

@@ -15,6 +15,9 @@ import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { toast } from 'sonner';
+import { DataStreamHandler } from './deep-research-handler';
+import { useDeepResearch } from '@/components/chat/tools/default/deep-research-context';
+import { EmbeddedDeepResearch } from './embedded-deep-research';
 
 export function Chat({
   id,
@@ -30,6 +33,7 @@ export function Chat({
   isReadonly: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  const { state } = useDeepResearch();
 
   const {
     messages,
@@ -103,6 +107,11 @@ export function Chat({
           )}
         </form>
       </div>
+
+      {/* Deep research panel that shows when active */}
+      {state.isActive && <EmbeddedDeepResearch />}
+
+      <DataStreamHandler id={id} />
 
       <Artifact
         chatId={id}

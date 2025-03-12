@@ -5,7 +5,6 @@ import { useEffect, useRef } from 'react';
 import { ArtifactKind } from './artifacts/artifact';
 import { Suggestion } from '@/lib/db/schema';
 import { initialArtifactData, useArtifact } from '@/hooks/use-artifact';
-import { useUserMessageId } from '@/hooks/use-user-message-id';
 import { useDeepResearch } from '@/components/chat/tools/default/deep-research-context';
 
 type DeepResearchOutput = {
@@ -25,7 +24,6 @@ type DataStreamDelta = {
     | 'suggestion'
     | 'clear'
     | 'finish'
-    | 'user-message-id'
     | 'kind'
     | 'activity-delta'
     | 'source-delta'
@@ -63,7 +61,6 @@ type DataStreamDelta = {
 
 export function DataStreamHandler({ id }: { id: string }) {
   const { data: dataStream } = useChat({ id });
-  const { setUserMessageIdFromServer } = useUserMessageId();
   const { setArtifact } = useArtifact();
   const { 
     state, 
@@ -82,12 +79,17 @@ export function DataStreamHandler({ id }: { id: string }) {
     const newDeltas = dataStream.slice(lastProcessedIndex.current + 1);
     lastProcessedIndex.current = dataStream.length - 1;
 
-    (newDeltas as DataStreamDelta[]).forEach((delta: DataStreamDelta) => {
-      if (delta.type === 'user-message-id') {
-        setUserMessageIdFromServer(delta.content as string);
-        return;
-      }
+    // Check if this is the final set of deltas and includes completion markers
+    const containsFinishDelta = newDeltas.some((delta: any) => 
+      delta.type === 'finish' || delta.type === 'message'
+    );
+    
+    // If we detect a finish event, ensure progress is at 100% first
+    if (containsFinishDelta && state.totalExpectedSteps > 0) {
+      updateProgress(state.totalExpectedSteps, state.totalExpectedSteps);
+    }
 
+    (newDeltas as DataStreamDelta[]).forEach((delta: DataStreamDelta) => {
       // Handle deep research progress initialization
       if (delta.type === 'progress-init') {
         const progressData = delta.content as any;
@@ -105,6 +107,11 @@ export function DataStreamHandler({ id }: { id: string }) {
         if (content && typeof content === 'object' && 'format' in content && content.format === 'markdown') {
           // Handle final research report
           const researchOutput = content as DeepResearchOutput;
+          
+          // Set progress to 100% when research is complete
+          if (state.totalExpectedSteps > 0) {
+            updateProgress(state.totalExpectedSteps, state.totalExpectedSteps);
+          }
           
           // If a document is created on the server side, we'll get a message event
           // Otherwise, we'll display the research output directly
@@ -128,6 +135,11 @@ export function DataStreamHandler({ id }: { id: string }) {
 
       // Handle message from deep research
       if (delta.type === 'message') {
+        // Set progress to 100% when research is complete
+        if (state.totalExpectedSteps > 0) {
+          updateProgress(state.totalExpectedSteps, state.totalExpectedSteps);
+        }
+        
         // This indicates the research has been processed and added to chat
         // We can now reset the deep research state
         setTimeout(() => {
@@ -251,13 +263,13 @@ export function DataStreamHandler({ id }: { id: string }) {
   }, [
     dataStream,
     setArtifact,
-    setUserMessageIdFromServer,
     addActivity,
     addSource,
     setActive,
     updateProgress,
     initProgress,
-    clearState
+    clearState,
+    state.totalExpectedSteps
   ]);
 
   return null;

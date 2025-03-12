@@ -55,8 +55,7 @@ export function AppSidebar({ user, title = 'Chatbot', showNewChat = false, child
                     className="p-2 h-fit"
                     onClick={() => {
                       setOpenMobile(false);
-                      router.push('/');
-                      router.refresh();
+                      router.push('/chat');
                     }}
                   >
                     <PlusIcon />

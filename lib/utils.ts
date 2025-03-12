@@ -229,3 +229,26 @@ export function getDocumentTimestampByIndex(
 
   return documents[index].createdAt;
 }
+
+/**
+ * Calculates progress percentage with consistent rules:
+ * 1. Rounds to the nearest whole percentage
+ * 2. Never exceeds 100%
+ * 3. Shows 100% when very close to completion
+ */
+export function calculateProgressPercentage(completedSteps: number, totalSteps: number): number {
+  if (totalSteps === 0) return 0;
+  
+  // Calculate basic percentage
+  let percentage = Math.round((completedSteps / totalSteps) * 100);
+  
+  // Ensure it never exceeds 100%
+  percentage = Math.min(percentage, 100);
+  
+  // If we're very close to completion (e.g., 97% or higher and final step), show 100%
+  if (percentage >= 97 && completedSteps >= totalSteps - 1) {
+    percentage = 100;
+  }
+  
+  return percentage;
+}
