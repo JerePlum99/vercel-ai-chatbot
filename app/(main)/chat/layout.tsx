@@ -1,10 +1,8 @@
 import { cookies } from 'next/headers';
-
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarHistory } from '@/components/chat/sidebar/sidebar-history';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-
-import { auth } from '../../(auth)/auth';
+import { getSessionUser } from '@/lib/auth/session';
 import Script from 'next/script';
 
 export const experimental_ppr = true;
@@ -14,7 +12,11 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
+  // Get session using the simplified helper
+  const [user, cookieStore] = await Promise.all([
+    getSessionUser(), 
+    cookies()
+  ]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
 
   return (
@@ -25,8 +27,8 @@ export default async function Layout({
       />
       <div className="flex h-full">
         <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar user={session?.user} title="Chat" showNewChat>
-            <SidebarHistory user={session?.user} />
+          <AppSidebar user={user} title="Chat" showNewChat>
+            <SidebarHistory user={user} />
           </AppSidebar>
           <SidebarInset className="flex-1">{children}</SidebarInset>
         </SidebarProvider>
