@@ -90,15 +90,14 @@ export const auth = betterAuth({
       });
       return true; // Allow sign in
     },
-    // Added redirect callback for better control of redirects
+    // Simplified redirect logic
     redirect: async ({ url, baseUrl }: any) => {
-      console.log("Redirect callback", { url, baseUrl });
-      // If the URL starts with the base URL or is a relative URL, return it
-      if (url.startsWith(baseUrl) || url.startsWith('/')) {
+      // If it's an explicit redirect URL, honor it
+      if (url && (url.startsWith(baseUrl) || url.startsWith('/'))) {
         return url;
       }
-      // Default to the chat page
-      return '/chat';
+      // Default to home page instead of forcing /chat
+      return '/';
     },
     // Invoked whenever a session is checked
     session: async ({ session, user }: any) => {
@@ -114,10 +113,8 @@ export const auth = betterAuth({
   // Page URLs
   pages: {
     signIn: "/login",
-    signOut: "/login", // Redirect to login page after signing out
-    error: "/login", // Error code passed in query string as ?error=
-    // Default success redirect
-    defaultRedirect: "/chat" // Add this to ensure users go to /chat after authentication
+    signOut: "/login",
+    error: "/login"
   },
 });
 

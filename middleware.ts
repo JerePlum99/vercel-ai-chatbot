@@ -28,6 +28,17 @@ export async function middleware(request: NextRequest) {
   // Only log in development mode
   if (isDevelopment) {
     console.log(`Middleware processing: ${path}`);
+    console.log(`Request type: ${request.headers.get('next-router-state-tree') ? 'Client Navigation' : 
+                 request.headers.get('x-middleware-prefetch') ? 'Prefetch' : 'Server Load'}`);
+  }
+
+  // Skip full auth check for prefetch requests - just check if any auth cookie exists
+  if (request.headers.get('x-middleware-prefetch')) {
+    const hasAuthCookie = request.cookies.has('better-auth.session_token');
+    if (!hasAuthCookie) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
   }
   
   // Always allow public routes
