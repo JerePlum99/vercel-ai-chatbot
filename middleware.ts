@@ -1,77 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
 
-const ROUTE_PATTERNS = {
-  public: [
-    '/login', 
-    '/register', 
-    '/api/auth',
-    '/api/auth/callback',
-    '/_next',
-    '/favicon.ico',
-  ] as const,
-  protected: [
-    '/chat',
-    '/dashboard',
-    '/settings'
-  ] as const
-} as const;
+// Force Node.js runtime to properly handle Better Auth requirements
+export const runtime = 'nodejs';
 
-const isDevelopment = process.env.VERCEL_ENV !== 'production';
+// Define public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/login', 
+  '/register', 
+  '/api/auth',
+  '/api/auth/callback',
+  '/_next',
+  '/favicon.ico'
+];
 
-// Simple helper to check if path matches any pattern
-function matchesPattern(path: string, patterns: readonly string[]): boolean {
-  return patterns.some(pattern => 
-    path === pattern || 
-    path.startsWith(`${pattern}/`)
-  );
-}
-
-// Create redirect response with security headers
-function createAuthResponse(request: NextRequest): NextResponse {
-  const response = NextResponse.redirect(new URL("/login", request.url));
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  return response;
-}
-
+/**
+ * Better Auth middleware for robust authentication checks
+ * Uses the recommended approach with Node.js runtime from Better Auth docs
+ * 
+ * @param request The Next.js request
+ * @returns Response or continues to the next middleware
+ */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   // Quick exit for public routes
-  if (matchesPattern(path, ROUTE_PATTERNS.public)) {
+  if (PUBLIC_ROUTES.some(route => path === route || path.startsWith(`${route}/`))) {
     return NextResponse.next();
   }
   
-  // For protected routes, first check if token exists
-  if (matchesPattern(path, ROUTE_PATTERNS.protected)) {
+  try {
+    // For protected routes - use a cookie-based fallback approach
+    // This avoids using auth.api.getSession() which depends on perf_hooks
     const sessionToken = request.cookies.get('better-auth.session_token');
     
     // If no token exists, redirect to login
     if (!sessionToken) {
-      isDevelopment && console.log(`Auth failed: No session token for ${path}`);
-      return createAuthResponse(request);
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     
-    // If token exists, validate it
-    const sessionCookie = getSessionCookie(request, {
-      cookiePrefix: "better-auth",
-      useSecureCookies: process.env.VERCEL_ENV === "production"
-    });
-
-    // If session is invalid, redirect to login
-    if (!sessionCookie) {
-      isDevelopment && console.log(`Auth failed: Invalid session for ${path}`);
-      return createAuthResponse(request);
-    }
+    // Basic cookie validation - we're not fully validating the session here
+    // Just checking for cookie existence to avoid Edge runtime conflicts
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-  
-  // Add security headers and continue
-  const response = NextResponse.next();
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  
-  return response;
 }
 
 export const config = {

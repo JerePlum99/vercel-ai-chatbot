@@ -3,7 +3,25 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db";
 import * as schema from '../db/schema';
 
+// Validate the auth secret is set
+if (!process.env.BETTER_AUTH_SECRET) {
+  console.error(
+    'Error: BETTER_AUTH_SECRET is not set. Please set this environment variable.'
+  );
+  // Don't throw an error in production to avoid crashing, but this should be fixed
+  if (process.env.NODE_ENV !== 'production') {
+    throw new Error('BETTER_AUTH_SECRET must be provided for Better Auth to function correctly');
+  }
+}
+
 export const auth = betterAuth({
+  // Add secret key from environment variables
+  secret: process.env.BETTER_AUTH_SECRET,
+  
+  // Add base URL for auth endpoints
+  baseURL: process.env.BETTER_AUTH_URL || 
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  
   database: drizzleAdapter(db, {
     provider: 'pg',
     // Map the expected model names to your schema objects
