@@ -1,25 +1,13 @@
 import { z } from 'zod';
-import { streamObject, tool } from 'ai';
-import type { DataStreamWriter } from 'ai';
+import { Session } from 'next-auth';
+import { DataStreamWriter, streamObject, tool } from 'ai';
 import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import { Suggestion } from '@/lib/db/schema';
 import { generateUUID } from '@/lib/utils';
 import { myProvider } from '../../models';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
 
 interface RequestSuggestionsProps {
-  session: MaybeAuthSession;
+  session: Session;
   dataStream: DataStreamWriter;
 }
 
@@ -35,11 +23,6 @@ export const requestSuggestions = ({
         .describe('The ID of the document to request edits'),
     }),
     execute: async ({ documentId }) => {
-      // Validate session before proceeding
-      if (!session || !session.user || !session.user.id) {
-        throw new Error('Authentication required to request suggestions');
-      }
-      
       const document = await getDocumentById({ id: documentId });
 
       if (!document || !document.content) {

@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { User } from 'next-auth';
 import Image from 'next/image';
 import { ChevronUp } from 'lucide-react';
-import { useSignOut } from '@/lib/auth/auth-client';
+import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
@@ -17,12 +18,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-// Accept any user object that has the required properties
-export function AppNav({ user }: { user: any }) {
+export function AppNav({ user }: { user: User | undefined }) {
   const pathname = usePathname();
   const { setTheme, theme } = useTheme();
-  const handleSignOut = useSignOut();
-
+  
   // Define navigation items with paths and labels
   const navItems = [
     { path: '/chat', label: 'Chat' },
@@ -31,36 +30,32 @@ export function AppNav({ user }: { user: any }) {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-      <div className="flex h-14 items-center px-4">
-        <div className="flex">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-semibold mr-6"
-          >
-            {/* Logo or App Name */}
-            <span>AI Chatbot</span>
+    <nav className="sticky top-0 z-50 w-full border-b bg-background">
+      <div className="flex h-16 items-center px-4 md:px-6">
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center font-semibold text-lg mr-6">
+            Chatbot
           </Link>
-
-          {/* Main Navigation */}
-          <div className="hidden sm:flex">
-            {navItems.map(({ path, label }) => (
+          
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => (
               <Link
-                key={path}
-                href={path}
+                key={item.path}
+                href={item.path}
                 className={cn(
-                  'flex items-center px-4 text-sm font-medium transition-colors hover:text-primary',
-                  pathname === path || pathname.startsWith(`${path}/`)
-                    ? 'text-foreground'
-                    : 'text-muted-foreground'
+                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  pathname === item.path || 
+                  (item.path === '/chat' && pathname.startsWith('/chat'))
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                {label}
+                {item.label}
               </Link>
             ))}
           </div>
         </div>
-
+        
         {user && (
           <div className="ml-auto flex items-center">
             <DropdownMenu>
@@ -92,7 +87,7 @@ export function AppNav({ user }: { user: any }) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
-                  onSelect={handleSignOut}
+                  onSelect={() => signOut({ redirectTo: '/' })}
                 >
                   Sign out
                 </DropdownMenuItem>

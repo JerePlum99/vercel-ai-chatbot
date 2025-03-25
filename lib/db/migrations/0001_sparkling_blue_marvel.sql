@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS "Document" (
 	"createdAt" timestamp NOT NULL,
 	"title" text NOT NULL,
 	"content" text,
-	"kind" varchar DEFAULT 'text' NOT NULL,
 	"userId" uuid NOT NULL,
 	CONSTRAINT "Document_id_createdAt_pk" PRIMARY KEY("id","createdAt")
 );

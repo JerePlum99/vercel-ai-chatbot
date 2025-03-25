@@ -5,8 +5,9 @@ import Image from 'next/image';
 import { GoogleAuthForm } from '@/components/auth/google-auth-form';
 import { DevImpersonateForm } from '@/components/auth/dev-impersonate-form';
 
-// Check if we're in preview or development (not in production)
-const showDevTools = process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production';
+// Check if we're in preview or development
+const showDevTools = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' || 
+                    process.env.NODE_ENV === 'development';
 
 export default function Page() {
   const router = useRouter();
@@ -80,4 +81,4 @@ export default function Page() {
       </div>
     </div>
   );
-} 
+}

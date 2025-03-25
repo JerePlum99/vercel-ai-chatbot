@@ -2,7 +2,7 @@ import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { verifySession } from '@/lib/auth/auth-api';
+import { auth } from '@/app/(auth)/auth';
 
 // Use Blob instead of File since File is not available in Node.js environment
 const FileSchema = z.object({
@@ -18,13 +18,10 @@ const FileSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return NextResponse.json(
-      { error: message || 'Unauthorized' }, 
-      { status: status || 401 }
-    );
+  const session = await auth();
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (request.body === null) {

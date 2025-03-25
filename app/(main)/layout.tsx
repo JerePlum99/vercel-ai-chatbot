@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
+
 import { AppNav } from '@/components/app-nav';
-import { getSessionUser } from '@/lib/auth/session';
+
+import { auth } from '../(auth)/auth';
 import Script from 'next/script';
 
 export const experimental_ppr = true;
@@ -10,11 +12,7 @@ export default async function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get session using the simplified helper
-  const [user, cookieStore] = await Promise.all([
-    getSessionUser(), 
-    cookies()
-  ]);
+  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
 
   return (
@@ -24,7 +22,7 @@ export default async function MainLayout({
         strategy="beforeInteractive"
       />
       <div className="flex flex-col h-screen">
-        <AppNav user={user} />
+        <AppNav user={session?.user} />
         <div className="flex-1 overflow-hidden">
           {children}
         </div>
