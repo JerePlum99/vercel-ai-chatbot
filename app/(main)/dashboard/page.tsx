@@ -1,7 +1,11 @@
-import { getSessionUser } from '@/lib/auth/session';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 
 export default async function DashboardPage() {
-  const user = await getSessionUser();
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+  const user = session?.user;
   
   return (
     <div className="container p-4 md:p-6">

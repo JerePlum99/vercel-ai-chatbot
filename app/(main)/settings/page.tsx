@@ -1,10 +1,14 @@
-import { getSessionUser } from '@/lib/auth/session';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
 export default async function SettingsPage() {
-  const user = await getSessionUser();
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+  const user = session?.user;
   
   return (
     <div className="container py-10">

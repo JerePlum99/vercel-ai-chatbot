@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronUp } from 'lucide-react';
-import { useSignOut } from '@/lib/auth/auth-client';
+import { authClient } from '@/lib/auth/auth-client';
 import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
@@ -20,8 +20,18 @@ import { Button } from '@/components/ui/button';
 // Accept any user object that has the required properties
 export function AppNav({ user }: { user: any }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { setTheme, theme } = useTheme();
-  const handleSignOut = useSignOut();
+
+  const handleSignOut = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push('/login');
+        }
+      }
+    });
+  };
 
   // Define navigation items with paths and labels
   const navItems = [

@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { signIn } from '@/lib/auth/auth-client';
 
 export function DevImpersonateForm() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -17,46 +15,41 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      // First check if the user already exists
-      const checkUserResponse = await fetch('/api/auth/dev-check-user', {
+      // First try to create the user through our API route
+      const response = await fetch('/api/auth/dev-impersonate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          name: name || email.split('@')[0],
+        }),
       });
-      
-      const { exists } = await checkUserResponse.json();
-      
-      // Only register if the user doesn't exist
-      if (!exists) {
-        // Create the user
-        await fetch('/api/auth/dev-register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            name: name || email.split('@')[0], // Use part of email as name if not provided
-            password: 'dev-password', // For dev purposes
-          }),
-        });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create user');
       }
 
-      // Whether user was created or already existed, sign them in
+      // Then sign in using Better Auth's client
       await signIn.email({
         email,
-        password: 'dev-password', // For dev purposes
-        callbackURL: '/chat' // Explicit redirect to /chat instead of root path
+        password: 'dev-password',
+        callbackURL: '/chat'
       });
-      
-      // If successful, navigate to the chat page
-      router.push('/chat');
-      router.refresh();
     } catch (error: any) {
-      setError(error?.message || 'Authentication failed');
-      console.error(error);
+      // If user already exists, just try to sign in
+      if (error.message?.includes('already exists')) {
+        await signIn.email({
+          email,
+          password: 'dev-password',
+          callbackURL: '/chat'
+        });
+      } else {
+        setError(error?.message || 'Authentication failed');
+        console.error(error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +85,7 @@ export function DevImpersonateForm() {
       
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || process.env.NEXT_PUBLIC_VERCEL_ENV === 'production'}
         className="w-full px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:opacity-50"
       >
         {isLoading ? 'Impersonating...' : 'Impersonate User'}

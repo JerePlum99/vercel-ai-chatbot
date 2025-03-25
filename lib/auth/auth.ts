@@ -1,9 +1,18 @@
 import { betterAuth } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db";
 import * as schema from '../db/schema';
 
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error('BETTER_AUTH_SECRET environment variable is not set');
+}
+
 export const auth = betterAuth({
+  // Add secret for encryption and session handling
+  secret: process.env.BETTER_AUTH_SECRET,
+  
+  // Database configuration
   database: drizzleAdapter(db, {
     provider: 'pg',
     // Map the expected model names to your schema objects
@@ -20,12 +29,9 @@ export const auth = betterAuth({
     generateId: false, // Let the database generate UUIDs instead of BetterAuth
   },
   
-  // Configure user model with both name customization and additional fields
+  // User model configuration
   user: {
-    modelName: "User", // This tells BetterAuth your table is capitalized
-    fields: {
-      // Map BetterAuth fields to your schema field names if different
-    },
+    modelName: "User",
     additionalFields: {
       is_admin: {
         type: "boolean",
@@ -34,10 +40,12 @@ export const auth = betterAuth({
     }
   },
   
+  // Session configuration
   session: {
     modelName: "Session",
   },
   
+  // Account configuration
   account: {
     modelName: "Account",
     accountLinking: {
@@ -46,64 +54,28 @@ export const auth = betterAuth({
     }
   },
   
+  // Verification configuration
   verification: {
     modelName: "Verification",
   },
   
-  // Configure OAuth providers
+  // OAuth providers
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      // Map Google profile data to user using BetterAuth's standard mapping
-      mapProfileToUser: (profile: any) => {
-        return {
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          emailVerified: profile.email_verified || false,
-        };
-      }
     }
   },
   
-  // Optionally enable email and password authentication
+  // Email/password authentication
   emailAndPassword: {
     enabled: true,
   },
   
-  // Set cookies and session options
-  cookies: {
-    prefix: "better-auth",
-    secure: process.env.VERCEL_ENV === "production",
-    sameSite: "lax", // Ensure cookies work with redirects
-    path: "/",       // Ensure cookies are available on all paths
-  },
-  
-  // Callbacks similar to NextAuth
+  // Essential callback for admin status
   callbacks: {
-    // Invoked when a user signs in
-    signIn: async ({ user, account, profile }: any) => {
-      console.log("Sign-in callback triggered", { 
-        userId: user.id,
-        provider: account?.providerId 
-      });
-      return true; // Allow sign in
-    },
-    // Simplified redirect logic
-    redirect: async ({ url, baseUrl }: any) => {
-      // If it's an explicit redirect URL, honor it
-      if (url && (url.startsWith(baseUrl) || url.startsWith('/'))) {
-        return url;
-      }
-      // Default to home page instead of forcing /chat
-      return '/';
-    },
-    // Invoked whenever a session is checked
-    session: async ({ session, user }: any) => {
-      // Add custom properties to the session
+    session: async ({ session, user }: { session: any; user: any }) => {
       if (session.user) {
-        session.user.id = user.id;
         session.user.is_admin = user.is_admin || false;
       }
       return session;
@@ -116,6 +88,9 @@ export const auth = betterAuth({
     signOut: "/login",
     error: "/login"
   },
+  
+  // Next.js integration
+  plugins: [nextCookies()]
 });
 
 // Note: Client-side exports have been moved to lib/auth-client.ts 

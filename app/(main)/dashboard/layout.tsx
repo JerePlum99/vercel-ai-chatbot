@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
-import { getSessionUser } from '@/lib/auth/session';
+import { cookies, headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -40,9 +40,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get session using the simplified helper
-  const [user, cookieStore] = await Promise.all([
-    getSessionUser(), 
+  // Get session and cookies in parallel
+  const [session, cookieStore] = await Promise.all([
+    auth.api.getSession({
+      headers: await headers()
+    }),
     cookies()
   ]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
@@ -50,7 +52,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-full">
       <SidebarProvider defaultOpen={!isCollapsed}>
-        <AppSidebar user={user} title="Dashboard">
+        <AppSidebar user={session?.user} title="Dashboard">
           <DashboardSidebar />
         </AppSidebar>
         <SidebarInset className="flex-1">{children}</SidebarInset>

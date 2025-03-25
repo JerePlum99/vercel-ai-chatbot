@@ -1,25 +1,16 @@
 'use client';
 
 import { signIn } from "@/lib/auth/auth-client";
-import { useRouter } from "next/navigation";
 
 export function GoogleAuthForm() {
-  const router = useRouter();
-  
   const handleGoogleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Make sure we're directing users to a protected route after authentication
-      const result = await signIn.social({
+      await signIn.social({
         provider: "google",
-        callbackURL: "/chat" // Explicit redirect to /chat instead of root
+        callbackURL: "/chat" // Better Auth will handle the redirect
       });
-      
-      // Try to navigate to /chat regardless of the result
-      // BetterAuth might handle the redirect automatically
-      router.push("/chat");
-      router.refresh();
     } catch (error) {
       console.error("Google sign-in error:", error);
     }

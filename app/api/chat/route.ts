@@ -34,40 +34,10 @@ import {
   exaGetContents,
   exaAnswer 
 } from '@/lib/ai/tools/default/exa-search';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
 
 // Maximum duration for the API route execution in seconds
 export const maxDuration = 60;
 
-/**
- * Helper function to verify user authentication
- * Centralizes authentication logic for all API endpoints
- */
-async function verifyAuthentication(request: Request): Promise<{ 
-  authenticated: boolean; 
-  session: MaybeAuthSession;
-}> {
-  try {
-    const session = await auth.api.getSession({
-      headers: request.headers
-    });
-    
-    if (!session || !session.user || !session.user.id) {
-      console.error('Authentication failed: No valid session or user ID');
-      return { authenticated: false, session: null };
-    }
-    
-    return { authenticated: true, session: session as AuthSession };
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return { authenticated: false, session: null };
-  }
-}
-
-/**
- * POST handler for the chat API endpoint
- * Handles new message submissions and AI responses
- */
 export async function POST(request: Request) {
   // Extract chat data from the request body
   const {
@@ -77,9 +47,12 @@ export async function POST(request: Request) {
   }: { id: string; messages: Array<Message>; selectedChatModel: string } =
     await request.json();
 
-  // Verify user authentication with BetterAuth
-  const { authenticated, session } = await verifyAuthentication(request);
-  if (!authenticated || !session) {
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -224,9 +197,12 @@ export async function DELETE(request: Request) {
     return new Response('Not Found: Missing chat ID', { status: 404 });
   }
 
-  // Verify user authentication with BetterAuth
-  const { authenticated, session } = await verifyAuthentication(request);
-  if (!authenticated || !session) {
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 

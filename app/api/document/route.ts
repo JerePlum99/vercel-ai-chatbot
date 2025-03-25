@@ -1,4 +1,4 @@
-import { verifySession } from '@/lib/auth/auth-api';
+import { auth } from '@/lib/auth/auth';
 import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 import {
   deleteDocumentsByIdAfterTimestamp,
@@ -14,14 +14,16 @@ export async function GET(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const documents = await getDocumentsById({ id });
-
   const [document] = documents;
 
   if (!document) {
@@ -43,10 +45,13 @@ export async function POST(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const {
@@ -77,14 +82,16 @@ export async function PATCH(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const documents = await getDocumentsById({ id });
-
   const [document] = documents;
 
   if (document.userId !== session.user.id) {

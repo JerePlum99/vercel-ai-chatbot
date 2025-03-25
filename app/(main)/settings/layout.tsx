@@ -1,14 +1,17 @@
-import { getSessionUser } from '@/lib/auth/session';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Ensure authentication using the simplified helper
-  const user = await getSessionUser();
+  // Get session using Better Auth
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
   
-  if (!user) {
+  if (!session?.user) {
     throw new Error('Unauthorized');
   }
 

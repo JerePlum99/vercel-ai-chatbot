@@ -1,4 +1,4 @@
-import { verifySession } from '@/lib/auth/auth-api';
+import { auth } from '@/lib/auth/auth';
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -9,10 +9,13 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  // Verify user authentication with Better Auth
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session?.user?.id) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const suggestions = await getSuggestionsByDocumentId({
