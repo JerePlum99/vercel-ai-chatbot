@@ -3,18 +3,7 @@ import type { DataStreamWriter } from 'ai';
 import { z } from 'zod';
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
 import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
+import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 interface UpdateDocumentProps {
   session: MaybeAuthSession;
@@ -32,7 +21,7 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
     }),
     execute: async ({ id, description }) => {
       // Validate session before proceeding
-      if (!session || !session.user || !session.user.id) {
+      if (!isAuthenticatedSession(session)) {
         throw new Error('Authentication required to update documents');
       }
       

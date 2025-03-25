@@ -5,18 +5,7 @@ import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import { Suggestion } from '@/lib/db/schema';
 import { generateUUID } from '@/lib/utils';
 import { myProvider } from '../../models';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
+import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 interface RequestSuggestionsProps {
   session: MaybeAuthSession;
@@ -36,9 +25,12 @@ export const requestSuggestions = ({
     }),
     execute: async ({ documentId }) => {
       // Validate session before proceeding
-      if (!session || !session.user || !session.user.id) {
+      if (!isAuthenticatedSession(session)) {
         throw new Error('Authentication required to request suggestions');
       }
+
+      // After this point, TypeScript knows session.user exists and has an id
+      const { user } = session;
       
       const document = await getDocumentById({ id: documentId });
 
@@ -83,18 +75,14 @@ export const requestSuggestions = ({
         suggestions.push(suggestion);
       }
 
-      if (session.user?.id) {
-        const userId = session.user.id;
-
-        await saveSuggestions({
-          suggestions: suggestions.map((suggestion) => ({
-            ...suggestion,
-            userId,
-            createdAt: new Date(),
-            documentCreatedAt: document.createdAt,
-          })),
-        });
-      }
+      await saveSuggestions({
+        suggestions: suggestions.map((suggestion) => ({
+          ...suggestion,
+          userId: user.id,
+          createdAt: new Date(),
+          documentCreatedAt: document.createdAt,
+        })),
+      });
 
       return {
         id: documentId,

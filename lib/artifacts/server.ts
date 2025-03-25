@@ -6,18 +6,7 @@ import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 import { DataStreamWriter } from 'ai';
 import { Document } from '../db/schema';
 import { saveDocument } from '../db/queries';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
+import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 export interface SaveDocumentProps {
   id: string;
@@ -62,13 +51,14 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         session: args.session,
       });
 
-      if (args.session?.user?.id) {
+      if (isAuthenticatedSession(args.session)) {
+        const { user } = args.session;
         await saveDocument({
           id: args.id,
           title: args.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: user.id,
         });
       }
 
@@ -82,13 +72,14 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         session: args.session,
       });
 
-      if (args.session?.user?.id) {
+      if (isAuthenticatedSession(args.session)) {
+        const { user } = args.session;
         await saveDocument({
           id: args.document.id,
           title: args.document.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: user.id,
         });
       }
 
