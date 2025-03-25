@@ -8,13 +8,9 @@ if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error('BETTER_AUTH_SECRET environment variable is not set');
 }
 
-const base_url = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_URL}`;
-
 export const auth = betterAuth({
   // Add secret for encryption and session handling
   secret: process.env.BETTER_AUTH_SECRET,
-  
-  baseURL: base_url,
   
   // Database configuration
   database: drizzleAdapter(db, {
