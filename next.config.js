@@ -19,6 +19,15 @@ const nextConfig = {
     deviceSizes: [32, 48, 64, 96], // We only use small avatar sizes
     imageSizes: [], // We don't need additional sizes for avatars
   },
+  experimental: {
+    // Enable better Node.js support
+    serverActions: {
+      allowedOrigins: ['localhost:3000'],
+      bodySizeLimit: '2mb',
+    },
+  },
+  // Ensure middleware uses Node.js runtime
+  transpilePackages: ['better-auth'],
 };
 
 module.exports = nextConfig; 
