@@ -1,8 +1,8 @@
 'use client';
 import { ChevronUp } from 'lucide-react';
 import Image from 'next/image';
-import type { User } from 'next-auth';
-import { signOut } from 'next-auth/react';
+import type { User } from '@/lib/db/schema';
+import { useSignOut } from '@/lib/auth/auth-client';
 import { useTheme } from 'next-themes';
 
 import {
@@ -20,6 +20,7 @@ import {
 
 export function SidebarUserNav({ user }: { user: User }) {
   const { setTheme, theme } = useTheme();
+  const handleSignOut = useSignOut();
 
   return (
     <SidebarMenu>
@@ -38,29 +39,33 @@ export function SidebarUserNav({ user }: { user: User }) {
               <ChevronUp className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="top"
-            className="w-[--radix-popper-anchor-width]"
-          >
+          
+          <DropdownMenuContent align="start" className="w-56">
+            <div className="flex items-center space-x-2 p-2">
+              <div className="flex flex-col space-y-0.5 leading-none">
+                {user.name && <p className="font-medium">{user.name}</p>}
+                {user.email && (
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                )}
+              </div>
+            </div>
+
+            <DropdownMenuSeparator />
+
             <DropdownMenuItem
               className="cursor-pointer"
               onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>
+
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <button
-                type="button"
-                className="w-full cursor-pointer"
-                onClick={() => {
-                  signOut({
-                    redirectTo: '/',
-                  });
-                }}
-              >
-                Sign out
-              </button>
+
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={handleSignOut}
+            >
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

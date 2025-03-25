@@ -1,6 +1,5 @@
 import Form from 'next/form';
-
-import { signOut } from '@/app/(auth)/auth';
+import { redirect } from 'next/navigation';
 
 export const SignOutForm = () => {
   return (
@@ -9,9 +8,13 @@ export const SignOutForm = () => {
       action={async () => {
         'use server';
 
-        await signOut({
-          redirectTo: '/',
+        // Call our custom sign-out endpoint to clear all cookies
+        await fetch('/api/auth/signout', {
+          method: 'POST',
         });
+        
+        // Redirect to login page
+        redirect('/login');
       }}
     >
       <button

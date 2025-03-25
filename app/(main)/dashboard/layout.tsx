@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { auth } from '../../(auth)/auth';
+import { getSessionUser } from '@/lib/auth/session';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
@@ -27,7 +27,7 @@ function DashboardSidebar() {
           href={item.href}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground hover:bg-muted"
         >
-          <item.icon className="h-4 w-4" />
+          <item.icon className="size-4" />
           <span>{item.label}</span>
         </Link>
       ))}
@@ -40,13 +40,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
+  // Get session using the simplified helper
+  const [user, cookieStore] = await Promise.all([
+    getSessionUser(), 
+    cookies()
+  ]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
 
   return (
     <div className="flex h-full">
       <SidebarProvider defaultOpen={!isCollapsed}>
-        <AppSidebar user={session?.user} title="Dashboard">
+        <AppSidebar user={user} title="Dashboard">
           <DashboardSidebar />
         </AppSidebar>
         <SidebarInset className="flex-1">{children}</SidebarInset>

@@ -57,8 +57,8 @@ export function Chat({
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher,
+    messages.some(m => m.role === 'assistant') ? `/api/vote?chatId=${id}` : null,
+    fetcher
   );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
