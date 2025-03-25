@@ -10,14 +10,6 @@ if (!process.env.BETTER_AUTH_SECRET) {
 
 const base_url = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_URL}`;
 
-// Log the base URL and environment variables
-console.log('Auth Server Configuration:', {
-  base_url,
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  VERCEL_URL: process.env.VERCEL_URL,
-  NODE_ENV: process.env.NODE_ENV
-});
-
 export const auth = betterAuth({
   // Add secret for encryption and session handling
   secret: process.env.BETTER_AUTH_SECRET,
