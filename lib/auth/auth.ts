@@ -8,9 +8,33 @@ if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error('BETTER_AUTH_SECRET environment variable is not set');
 }
 
+// Define base URL based on environment
+export const baseUrl =
+  process.env.NODE_ENV === "development"
+    ? new URL("http://localhost:3000")
+    : new URL(`https://${process.env.VERCEL_URL!}`);
+
+// Log the server configuration
+console.info('Auth Server Configuration:', {
+  baseUrl: baseUrl.toString(),
+  NODE_ENV: process.env.NODE_ENV,
+  VERCEL_ENV: process.env.VERCEL_ENV,
+  VERCEL_URL: process.env.VERCEL_URL
+});
+
+// Consider development mode if NODE_ENV is development or VERCEL_ENV is preview
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
+
+console.info('Auth Development Mode:', {
+  isDevelopment,
+  NODE_ENV: process.env.NODE_ENV,
+  VERCEL_ENV: process.env.VERCEL_ENV
+});
+
 export const auth = betterAuth({
   // Add secret for encryption and session handling
   secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: baseUrl.toString(),
   
   // Database configuration
   database: drizzleAdapter(db, {
@@ -35,7 +59,7 @@ export const auth = betterAuth({
     additionalFields: {
       is_admin: {
         type: "boolean",
-        defaultValue: false,
+        defaultValue: isDevelopment,
       }
     }
   },
@@ -43,6 +67,16 @@ export const auth = betterAuth({
   // Session configuration
   session: {
     modelName: "Session",
+    // Add explicit cookie configuration
+    cookie: {
+      name: 'auth_session',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   },
   
   // Account configuration
@@ -70,6 +104,13 @@ export const auth = betterAuth({
   // Email/password authentication
   emailAndPassword: {
     enabled: true,
+    skipVerification: isDevelopment,
+    defaultPassword: isDevelopment ? 'dev-password' : undefined,
+    // Add explicit configuration for development
+    development: {
+      enabled: isDevelopment,
+      skipVerification: true
+    }
   },
   
   // Essential callback for admin status
