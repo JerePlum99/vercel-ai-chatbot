@@ -96,6 +96,7 @@ export const auth = betterAuth({
     secure: process.env.VERCEL_ENV !== "development",
     sameSite: "lax", // Ensure cookies work with redirects
     path: "/",       // Ensure cookies are available on all paths
+    domain: process.env.VERCEL_ENV !== "development" ? undefined : "localhost", // Allow cookies across subdomains in preview/production
   },
   
   // Callbacks similar to NextAuth
