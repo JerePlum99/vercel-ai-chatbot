@@ -1,4 +1,4 @@
-import { verifySession } from '@/lib/auth/auth-api';
+import { auth } from '@/app/(auth)/auth';
 import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 import {
   deleteDocumentsByIdAfterTimestamp,
@@ -14,10 +14,10 @@ export async function GET(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const documents = await getDocumentsById({ id });
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   }
 
   if (document.userId !== session.user.id) {
-    return new Response('Unauthorized: Document belongs to another user', { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   return Response.json(documents, { status: 200 });
@@ -43,10 +43,10 @@ export async function POST(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  const session = await auth();
+
+  if (!session) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const {
@@ -56,15 +56,18 @@ export async function POST(request: Request) {
   }: { content: string; title: string; kind: ArtifactKind } =
     await request.json();
 
-  const document = await saveDocument({
-    id,
-    content,
-    title,
-    kind,
-    userId: session.user.id,
-  });
+  if (session.user?.id) {
+    const document = await saveDocument({
+      id,
+      content,
+      title,
+      kind,
+      userId: session.user.id,
+    });
 
-  return Response.json(document, { status: 200 });
+    return Response.json(document, { status: 200 });
+  }
+  return new Response('Unauthorized', { status: 401 });
 }
 
 export async function PATCH(request: Request) {
@@ -77,10 +80,10 @@ export async function PATCH(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  // Verify user session with BetterAuth
-  const { authorized, session, status, message } = await verifySession(request);
-  if (!authorized || !session) {
-    return new Response(message || 'Unauthorized', { status: status || 401 });
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const documents = await getDocumentsById({ id });
@@ -88,7 +91,7 @@ export async function PATCH(request: Request) {
   const [document] = documents;
 
   if (document.userId !== session.user.id) {
-    return new Response('Unauthorized: Document belongs to another user', { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   await deleteDocumentsByIdAfterTimestamp({

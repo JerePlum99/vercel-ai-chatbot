@@ -1,11 +1,8 @@
-import { auth } from '@/lib/auth/auth';
+import { auth } from '@/app/(auth)/auth';
 import { getChatsByUserId } from '@/lib/db/queries';
-import { headers } from 'next/headers';
 
 export async function GET() {
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
+  const session = await auth();
 
   if (!session || !session.user) {
     return Response.json('Unauthorized!', { status: 401 });

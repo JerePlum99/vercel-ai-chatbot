@@ -1,16 +1,11 @@
-import { getSessionUser } from '@/lib/auth/session';
+import { auth } from '../../(auth)/auth';
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Ensure authentication using the simplified helper
-  const user = await getSessionUser();
-  
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
+  await auth(); // Ensure authentication
 
   return (
     <div className="container max-w-screen-xl mx-auto">

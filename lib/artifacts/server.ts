@@ -6,18 +6,7 @@ import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 import { DataStreamWriter } from 'ai';
 import { Document } from '../db/schema';
 import { saveDocument } from '../db/queries';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
+import { Session } from 'next-auth';
 
 export interface SaveDocumentProps {
   id: string;
@@ -31,14 +20,14 @@ export interface CreateDocumentCallbackProps {
   id: string;
   title: string;
   dataStream: DataStreamWriter;
-  session: MaybeAuthSession;
+  session: Session;
 }
 
 export interface UpdateDocumentCallbackProps {
   document: Document;
   description: string;
   dataStream: DataStreamWriter;
-  session: MaybeAuthSession;
+  session: Session;
 }
 
 export interface DocumentHandler<T = ArtifactKind> {

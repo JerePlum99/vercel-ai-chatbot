@@ -32,7 +32,8 @@ export function PureMessageActions({
 
   if (isLoading) return null;
   if (message.role === 'user') return null;
-  if (Array.isArray(message.toolInvocations) && message.toolInvocations.length > 0) return null;
+  if (message.toolInvocations && message.toolInvocations.length > 0)
+    return null;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -61,11 +62,11 @@ export function PureMessageActions({
               variant="outline"
               onClick={async () => {
                 const upvote = fetch('/api/vote', {
-                  method: 'POST',
+                  method: 'PATCH',
                   body: JSON.stringify({
                     chatId,
                     messageId: message.id,
-                    isUpvoted: true,
+                    type: 'up',
                   }),
                 });
 
@@ -113,11 +114,11 @@ export function PureMessageActions({
               disabled={vote && !vote.isUpvoted}
               onClick={async () => {
                 const downvote = fetch('/api/vote', {
-                  method: 'POST',
+                  method: 'PATCH',
                   body: JSON.stringify({
                     chatId,
                     messageId: message.id,
-                    isUpvoted: false,
+                    type: 'down',
                   }),
                 });
 

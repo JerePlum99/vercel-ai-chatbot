@@ -13,13 +13,7 @@ import { myProvider } from '@/lib/ai/models';
 
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
-  cookieStore.set('chat-model', model, {
-    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-    path: '/',
-    httpOnly: true,
-    secure: process.env.VERCEL_ENV === 'production',
-    sameSite: 'strict'
-  });
+  cookieStore.set('chat-model', model);
 }
 
 export async function generateTitleFromUserMessage({

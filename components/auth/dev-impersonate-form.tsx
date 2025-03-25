@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/auth/auth-client';
+import { impersonateUser } from '@/app/(auth)/dev-auth-actions';
 
 export function DevImpersonateForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,45 +16,18 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      // First check if the user already exists
-      const checkUserResponse = await fetch('/api/auth/dev-check-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+      const result = await impersonateUser(email);
       
-      const { exists } = await checkUserResponse.json();
-      
-      // Only register if the user doesn't exist
-      if (!exists) {
-        // Create the user
-        await fetch('/api/auth/dev-register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            name: name || email.split('@')[0], // Use part of email as name if not provided
-            password: 'dev-password', // For dev purposes
-          }),
-        });
+      if (result.status === 'success') {
+        router.push('/');
+        router.refresh();
+      } else if (result.status === 'not_found') {
+        setError('User not found');
+      } else {
+        setError('Failed to impersonate user');
       }
-
-      // Whether user was created or already existed, sign them in
-      await signIn.email({
-        email,
-        password: 'dev-password', // For dev purposes
-        callbackURL: '/chat' // Explicit redirect to /chat instead of root path
-      });
-      
-      // If successful, navigate to the chat page
-      router.push('/chat');
-      router.refresh();
-    } catch (error: any) {
-      setError(error?.message || 'Authentication failed');
+    } catch (error) {
+      setError('An error occurred');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -71,14 +43,6 @@ export function DevImpersonateForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter user email to impersonate"
           required
-          disabled={isLoading}
-          className="w-full px-3 py-2 border rounded-md"
-        />
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter user name (optional)"
           disabled={isLoading}
           className="w-full px-3 py-2 border rounded-md"
         />

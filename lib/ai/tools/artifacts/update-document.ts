@@ -1,23 +1,11 @@
-import { tool } from 'ai';
-import type { DataStreamWriter } from 'ai';
+import { DataStreamWriter, tool } from 'ai';
+import { Session } from 'next-auth';
 import { z } from 'zod';
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
 import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
-import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
-
-// Define a more flexible session interface compatible with both auth systems
-interface SessionUser {
-  id: string;
-  [key: string]: any;
-}
-
-interface SessionWithUser {
-  user?: SessionUser;
-  [key: string]: any;
-}
 
 interface UpdateDocumentProps {
-  session: MaybeAuthSession;
+  session: Session;
   dataStream: DataStreamWriter;
 }
 
@@ -31,11 +19,6 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         .describe('The description of changes that need to be made'),
     }),
     execute: async ({ id, description }) => {
-      // Validate session before proceeding
-      if (!session || !session.user || !session.user.id) {
-        throw new Error('Authentication required to update documents');
-      }
-      
       const document = await getDocumentById({ id });
 
       if (!document) {
