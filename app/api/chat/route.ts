@@ -20,6 +20,7 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from '@/lib/utils';
+import { isValidSession } from '@/lib/auth/auth-types';
 
 import { generateTitleFromUserMessage } from '../actions';
 import { createDocument } from '@/lib/ai/tools/artifacts/create-document';
@@ -39,11 +40,10 @@ import {
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  // Extract chat data from the request body
   const {
-    id,          // Unique identifier for the chat session
-    messages,    // Array of chat messages
-    selectedChatModel, // The AI model selected for this chat
+    id,
+    messages,
+    selectedChatModel,
   }: { id: string; messages: Array<Message>; selectedChatModel: string } =
     await request.json();
 
@@ -52,27 +52,23 @@ export async function POST(request: Request) {
     headers: request.headers
   });
 
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
+  if (!isValidSession(session)) {
+    return new Response('Unauthorized or session expired', { status: 401 });
   }
 
-  // Get the most recent user message for processing
   const userMessage = getMostRecentUserMessage(messages);
   if (!userMessage) {
     return new Response('No user message found', { status: 400 });
   }
 
   try {
-    // Create or retrieve chat session
     const chat = await getChatById({ id });
     if (!chat) {
       console.log(`Creating new chat with ID: ${id} for user: ${session.user.id}`);
-      // Generate a title for new chat sessions based on the first message
       const title = await generateTitleFromUserMessage({ message: userMessage });
       await saveChat({ id, userId: session.user.id, title });
     } else {
       console.log(`Restoring existing chat with ID: ${id} for user: ${session.user.id}`);
-      // Verify chat ownership
       if (chat.userId !== session.user.id) {
         console.error(`Chat ownership mismatch. Chat belongs to ${chat.userId} but request from ${session.user.id}`);
         return new Response('Unauthorized: Chat belongs to another user', { status: 401 });
@@ -134,7 +130,8 @@ export async function POST(request: Request) {
 
           // Handle stream completion
           onFinish: async ({ response, reasoning }) => {
-            if (session.user?.id) {
+            // Re-verify session is still valid before saving
+            if (isValidSession(session)) {
               try {
                 // Clean and prepare messages for storage
                 const sanitizedResponseMessages = sanitizeResponseMessages({
@@ -189,7 +186,6 @@ export async function POST(request: Request) {
  * Handles chat deletion requests
  */
 export async function DELETE(request: Request) {
-  // Extract chat ID from URL parameters
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
@@ -202,12 +198,11 @@ export async function DELETE(request: Request) {
     headers: request.headers
   });
 
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
+  if (!isValidSession(session)) {
+    return new Response('Unauthorized or session expired', { status: 401 });
   }
 
   try {
-    // Verify chat ownership
     const chat = await getChatById({ id });
     if (!chat) {
       return new Response('Not Found: Chat does not exist', { status: 404 });
@@ -218,7 +213,6 @@ export async function DELETE(request: Request) {
       return new Response('Unauthorized: Chat belongs to another user', { status: 401 });
     }
 
-    // Delete the chat
     await deleteChatById({ id });
     return new Response('Chat deleted successfully', { status: 200 });
   } catch (error) {
