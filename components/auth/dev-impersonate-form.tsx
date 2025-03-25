@@ -15,22 +15,22 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      // First try to create the user through our API route
-      const response = await fetch('/api/auth/dev-impersonate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          name: name || email.split('@')[0],
-        }),
-      });
+      // // First try to create the user through our API route
+      // const response = await fetch('/api/auth/dev-impersonate', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     email,
+      //     name: name || email.split('@')[0],
+      //   }),
+      // });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create user');
-      }
+      // if (!response.ok) {
+      //   const data = await response.json();
+      //   throw new Error(data.error || 'Failed to create user');
+      // }
 
       // Then sign in using Better Auth's client
       await signIn.email({
