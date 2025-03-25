@@ -330,3 +330,13 @@ export async function updateChatVisiblityById({
     throw error;
   }
 }
+
+export async function getUserByEmail({ email }: { email: string }) {
+  try {
+    const [foundUser] = await db.select().from(user).where(eq(user.email, email));
+    return foundUser;
+  } catch (error) {
+    console.error('Failed to get user by email from database', error);
+    return null;
+  }
+}

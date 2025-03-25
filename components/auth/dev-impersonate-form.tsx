@@ -17,21 +17,34 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      // First attempt to create the user
-      // This is a dev-only endpoint we'll create to register users
-      const registerResponse = await fetch('/api/auth/dev-register', {
+      // First check if the user already exists
+      const checkUserResponse = await fetch('/api/auth/dev-check-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email,
-          name: name || email.split('@')[0], // Use part of email as name if not provided
-          password: 'dev-password', // For dev purposes
-        }),
+        body: JSON.stringify({ email }),
       });
+      
+      const { exists } = await checkUserResponse.json();
+      
+      // Only register if the user doesn't exist
+      if (!exists) {
+        // Create the user
+        await fetch('/api/auth/dev-register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            name: name || email.split('@')[0], // Use part of email as name if not provided
+            password: 'dev-password', // For dev purposes
+          }),
+        });
+      }
 
-      // Even if registration fails (e.g., user already exists), try to sign in
+      // Whether user was created or already existed, sign them in
       await signIn.email({
         email,
         password: 'dev-password', // For dev purposes
