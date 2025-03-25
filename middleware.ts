@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 const ROUTE_PATTERNS = {
@@ -24,16 +23,16 @@ function matchesPattern(path: string, patterns: readonly string[]): boolean {
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
-  // Quick exit for public routes
+  // Skip middleware for public routes
   if (matchesPattern(path, ROUTE_PATTERNS.public)) {
     return NextResponse.next();
   }
 
-  // Check session cookie - faster than full session check
+  // Check for session cookie using Better Auth's utility
   const sessionCookie = getSessionCookie(request, {
     cookieName: "session_token",
     cookiePrefix: "better-auth",
-    useSecureCookies: process.env.NODE_ENV === "production"
+    useSecureCookies: process.env.NODE_ENV !== 'development'
   });
 
   if (!sessionCookie) {
@@ -44,7 +43,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Add security headers and continue
+  // Add security headers
   const response = NextResponse.next();
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
