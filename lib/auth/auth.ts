@@ -11,7 +11,7 @@ if (!process.env.BETTER_AUTH_SECRET) {
 const base_url = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_URL}`;
 
 // Log the base URL and environment variables
-console.log('Auth Server Configuration:', {
+console.info('Auth Server Configuration:', {
   base_url,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   VERCEL_URL: process.env.VERCEL_URL,

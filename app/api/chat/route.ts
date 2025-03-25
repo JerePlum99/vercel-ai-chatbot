@@ -40,6 +40,15 @@ import {
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  // Log environment and request information
+  console.info('Chat API Environment:', {
+    base_url: process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCEL_URL}`,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    NODE_ENV: process.env.NODE_ENV,
+    request_url: request.url,
+    request_headers: Object.fromEntries(request.headers)
+  });
+
   const {
     id,
     messages,
@@ -50,6 +59,14 @@ export async function POST(request: Request) {
   // Verify user authentication with Better Auth
   const session = await auth.api.getSession({
     headers: request.headers
+  });
+
+  // Log session information
+  console.info('Chat API Session:', {
+    hasSession: !!session,
+    isValid: isValidSession(session),
+    userId: session?.user?.id,
+    sessionExpiry: session?.session?.expiresAt
   });
 
   if (!isValidSession(session)) {

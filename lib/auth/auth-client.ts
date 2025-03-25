@@ -5,7 +5,7 @@ const base_url = process.env.NEXT_PUBLIC_APP_URL || `https://${process.env.VERCE
 
 // Log the client configuration
 if (typeof window !== 'undefined') {
-  console.log('Auth Client Configuration:', {
+  console.info('Auth Client Configuration:', {
     base_url,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     VERCEL_URL: process.env.VERCEL_URL,
