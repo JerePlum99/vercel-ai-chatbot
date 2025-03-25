@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 import { Chat } from '@/components/chat/chat';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
@@ -33,8 +34,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     id,
   });
 
-  // Use default model until cookies are properly fixed
-  const selectedModel = DEFAULT_CHAT_MODEL;
+  // Get cookie store and read model preference
+  const cookieStore = await cookies();
+  const modelFromCookie = cookieStore.get('chat-model');
+  const selectedModel = modelFromCookie?.value || DEFAULT_CHAT_MODEL;
 
   return (
     <>

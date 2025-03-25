@@ -130,6 +130,21 @@ export async function voteMessage({
 
 export async function getVotesByChatId({ id }: { id: string }) {
   try {
+    // First check if the chat has any messages that can be voted on
+    const messages = await db
+      .select()
+      .from(message)
+      .where(and(
+        eq(message.chatId, id),
+        eq(message.role, 'assistant')
+      ));
+
+    // If no voteable messages, return empty array immediately
+    if (!messages.length) {
+      return [];
+    }
+
+    // Only query for votes if there are messages to vote on
     return await db.select().from(vote).where(eq(vote.chatId, id));
   } catch (error) {
     console.error('Failed to get votes by chat id from database', error);

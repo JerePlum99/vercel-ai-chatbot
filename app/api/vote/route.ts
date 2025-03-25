@@ -14,12 +14,11 @@ export async function GET(request: Request) {
     headers: await headers()
   });
 
-  if (!session || !session.user || !session.user.email) {
+  if (!session?.user?.email) {
     return new Response('Unauthorized', { status: 401 });
   }
 
   const votes = await getVotesByChatId({ id: chatId });
-
   return Response.json(votes, { status: 200 });
 }
 
