@@ -18,6 +18,7 @@ export async function verifySession(request: Request): Promise<{
       headers: request.headers
     });
 
+    // Check for complete session validity
     if (!session || !session.user?.id) {
       return {
         authorized: false,

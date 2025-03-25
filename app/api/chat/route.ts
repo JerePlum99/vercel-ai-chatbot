@@ -6,6 +6,7 @@ import {
 } from 'ai';
 
 import { auth } from '@/lib/auth/auth';
+import { verifySession } from '@/lib/auth/auth-api';
 import { headers } from 'next/headers';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
@@ -40,31 +41,6 @@ import { AuthSession, MaybeAuthSession } from '@/lib/auth/auth-types';
 export const maxDuration = 60;
 
 /**
- * Helper function to verify user authentication
- * Centralizes authentication logic for all API endpoints
- */
-async function verifyAuthentication(request: Request): Promise<{ 
-  authenticated: boolean; 
-  session: MaybeAuthSession;
-}> {
-  try {
-    const session = await auth.api.getSession({
-      headers: request.headers
-    });
-    
-    if (!session || !session.user || !session.user.id) {
-      console.error('Authentication failed: No valid session or user ID');
-      return { authenticated: false, session: null };
-    }
-    
-    return { authenticated: true, session: session as AuthSession };
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return { authenticated: false, session: null };
-  }
-}
-
-/**
  * POST handler for the chat API endpoint
  * Handles new message submissions and AI responses
  */
@@ -77,10 +53,10 @@ export async function POST(request: Request) {
   }: { id: string; messages: Array<Message>; selectedChatModel: string } =
     await request.json();
 
-  // Verify user authentication with BetterAuth
-  const { authenticated, session } = await verifyAuthentication(request);
-  if (!authenticated || !session) {
-    return new Response('Unauthorized', { status: 401 });
+  // Verify user authentication with our centralized helper
+  const { authorized, session, status, message } = await verifySession(request);
+  if (!authorized || !session) {
+    return new Response(message || 'Unauthorized', { status: status || 401 });
   }
 
   // Get the most recent user message for processing
@@ -224,10 +200,10 @@ export async function DELETE(request: Request) {
     return new Response('Not Found: Missing chat ID', { status: 404 });
   }
 
-  // Verify user authentication with BetterAuth
-  const { authenticated, session } = await verifyAuthentication(request);
-  if (!authenticated || !session) {
-    return new Response('Unauthorized', { status: 401 });
+  // Verify user authentication with our centralized helper
+  const { authorized, session, status, message } = await verifySession(request);
+  if (!authorized || !session) {
+    return new Response(message || 'Unauthorized', { status: status || 401 });
   }
 
   try {
