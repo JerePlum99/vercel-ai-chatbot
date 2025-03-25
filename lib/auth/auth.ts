@@ -93,15 +93,13 @@ export const auth = betterAuth({
   // Set cookies and session options
   cookies: {
     prefix: "better-auth",
-    secure: process.env.VERCEL_ENV !== "development",
+    secure: true, // Always use secure cookies in preview/production
     sameSite: "lax",
     path: "/",
     // Handle preview domains properly
     domain: process.env.VERCEL_ENV === "development" 
       ? "localhost" 
-      : process.env.VERCEL_URL 
-        ? process.env.VERCEL_URL.split(':')[0] 
-        : undefined,
+      : undefined, // Let the cookie domain be set automatically based on the current domain
   },
   
   // Callbacks similar to NextAuth

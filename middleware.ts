@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
   try {
     // For protected routes - use a cookie-based fallback approach
     // This avoids using auth.api.getSession() which depends on perf_hooks
-    const sessionToken = request.cookies.get('better-auth.session_token');
+    const sessionToken = request.cookies.get('_Secure-better-auth.session_token');
     
     // If no token exists, redirect to login
     if (!sessionToken) {
