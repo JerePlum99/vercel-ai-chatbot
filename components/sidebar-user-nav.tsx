@@ -2,8 +2,9 @@
 import { ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import type { User } from '@/lib/db/schema';
-import { useSignOut } from '@/lib/auth/auth-client';
+import { signOut } from '@/lib/auth/auth-client';
 import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 
 import {
   DropdownMenu,
@@ -20,7 +21,17 @@ import {
 
 export function SidebarUserNav({ user }: { user: User }) {
   const { setTheme, theme } = useTheme();
-  const handleSignOut = useSignOut();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push('/login');
+        }
+      }
+    });
+  };
 
   return (
     <SidebarMenu>
