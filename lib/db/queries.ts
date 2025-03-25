@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, desc, eq, gt, gte, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -18,37 +17,91 @@ import {
 } from './schema';
 import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 
-// Optionally, if not using email/pass login, you can
-// use the Drizzle adapter for Auth.js / NextAuth
-// https://authjs.dev/reference/adapter/drizzle
-
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
 
-export async function getUser(email: string): Promise<Array<User>> {
+// Find a user by email or clerkId
+export async function getUser(emailOrClerkId: string): Promise<Array<User>> {
   try {
-    return await db.select().from(user).where(eq(user.email, email));
+    return await db
+      .select()
+      .from(user)
+      .where(
+        or(
+          eq(user.email, emailOrClerkId),
+          eq(user.clerkId, emailOrClerkId)
+        )
+      );
   } catch (error) {
-    console.error('Failed to get user from database');
+    console.error('Failed to get user from database', error);
     throw error;
   }
 }
 
-export async function createUser(email: string, password: string) {
-  const salt = genSaltSync(10);
-  const hash = hashSync(password, salt);
-
+// Create or update a user from Clerk data
+export async function createOrUpdateUserFromClerk({
+  clerkId,
+  email,
+  name,
+  metadata = {}
+}: {
+  clerkId: string;
+  email: string;
+  name?: string | null;
+  metadata?: object;
+}) {
   try {
-    return await db.insert(user).values({ email, password: hash, is_admin: false });
+    // Check if user exists by clerkId
+    const existingUsers = await db
+      .select()
+      .from(user)
+      .where(eq(user.clerkId, clerkId));
+    
+    if (existingUsers.length > 0) {
+      // Update existing user
+      return await db
+        .update(user)
+        .set({ 
+          email, 
+          name: name ?? undefined,
+          metadata
+        })
+        .where(eq(user.clerkId, clerkId))
+        .returning();
+    } else {
+      // Create new user
+      return await db
+        .insert(user)
+        .values({ 
+          clerkId, 
+          email, 
+          name: name ?? undefined, 
+          is_admin: false,
+          metadata,
+          createdAt: new Date()
+        })
+        .returning();
+    }
   } catch (error) {
-    console.error('Failed to create user in database');
+    console.error('Failed to create or update user in database', error);
     throw error;
   }
 }
 
-export async function createSSOUser(id: string, email: string, name: string, password: string = 'N/A') {
-  return await db.insert(user).values({ id, email, name, password, is_admin: false });
+// Get user by Clerk ID
+export async function getUserByClerkId(clerkId: string): Promise<User | undefined> {
+  try {
+    const users = await db
+      .select()
+      .from(user)
+      .where(eq(user.clerkId, clerkId));
+    
+    return users[0];
+  } catch (error) {
+    console.error('Failed to get user by Clerk ID from database', error);
+    throw error;
+  }
 }
 
 export async function saveChat({

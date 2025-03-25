@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { SignIn } from '@clerk/nextjs';
+import { SignUp } from '@clerk/nextjs';
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const router = useRouter();
 
   return (
     <div className="flex min-h-screen relative">
-      {/* Left Column - Sign In */}
+      {/* Left Column - Sign Up */}
       <div className="w-full lg:w-1/2 flex flex-col p-8 lg:p-12 bg-background">
         {/* Logo */}
         <div className="absolute top-8 lg:top-12 left-8 lg:left-12">
@@ -23,17 +23,17 @@ export default function SignInPage() {
           />
         </div>
 
-        {/* Sign In Form - Centered */}
+        {/* Sign Up Form - Centered */}
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-sm space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold text-foreground">Welcome Back</h1>
+              <h1 className="text-3xl font-semibold text-foreground">Create Account</h1>
               <p className="text-muted-foreground">
-                Sign in to access your account
+                Sign up to get started
               </p>
             </div>
             
-            <SignIn 
+            <SignUp 
               appearance={{
                 elements: {
                   formButtonPrimary: 'bg-primary hover:bg-primary/90',
@@ -44,8 +44,8 @@ export default function SignInPage() {
                 }
               }}
               routing="path"
-              path="/login"
-              signUpUrl="/signup"
+              path="/signup"
+              signInUrl="/login"
               redirectUrl="/"
             />
           </div>
@@ -72,4 +72,4 @@ export default function SignInPage() {
       </div>
     </div>
   );
-}
+} 

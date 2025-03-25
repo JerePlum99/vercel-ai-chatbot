@@ -1,18 +1,19 @@
-import NextAuth from 'next-auth';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 
-import { authConfig } from '@/app/(auth)/auth.config';
-
-export default NextAuth(authConfig).auth;
+// This example protects all routes including api/trpc routes
+// Please edit this to allow other routes to be public as needed.
+// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (auth endpoints)
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico, google-icon.svg (public assets)
+     * - favicon.ico, public assets
+     * - api/webhooks (webhooks endpoints)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|google-icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

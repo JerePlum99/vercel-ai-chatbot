@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { User } from 'next-auth';
 import Image from 'next/image';
 import { ChevronUp } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { useUser, UserButton } from '@clerk/nextjs';
 import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
@@ -18,9 +17,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-export function AppNav({ user }: { user: User | undefined }) {
+export function AppNav() {
   const pathname = usePathname();
   const { setTheme, theme } = useTheme();
+  const { isLoaded, isSignedIn, user } = useUser();
   
   // Define navigation items with paths and labels
   const navItems = [
@@ -56,43 +56,29 @@ export function AppNav({ user }: { user: User | undefined }) {
           </div>
         </div>
         
-        {user && (
+        {isLoaded && isSignedIn && user && (
           <div className="ml-auto flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="rounded-full h-8 w-8 p-0">
-                  <Image
-                    src={user.image || `https://avatar.vercel.sh/${user.email}`}
-                    alt={user.email ?? 'User Avatar'}
-                    width={32}
-                    height={32}
-                    className="rounded-full"
-                  />
-                </Button>
+                <UserButton />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    {user.name && <p className="font-medium">{user.name}</p>}
-                    {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 >
                   {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onSelect={() => signOut({ redirectTo: '/' })}
-                >
-                  Sign out
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        )}
+        
+        {isLoaded && !isSignedIn && (
+          <div className="ml-auto">
+            <Button variant="outline" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
           </div>
         )}
       </div>

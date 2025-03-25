@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { impersonateUser } from '@/app/(auth)/dev-auth-actions';
+import { useSignIn } from '@clerk/nextjs';
 
+// This is a development-only component for impersonating users
 export function DevImpersonateForm() {
   const router = useRouter();
+  const { signIn } = useSignIn();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,15 +18,21 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      const result = await impersonateUser(email);
+      // For development, we'll use a passwordless sign-in
+      // In a real implementation, you would need to handle this differently
+      // This is just for development testing
+      if (!signIn) {
+        throw new Error("SignIn not available");
+      }
+
+      const response = await fetch(`/api/dev-impersonate?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
       
-      if (result.status === 'success') {
+      if (data.status === 'success') {
         router.push('/');
         router.refresh();
-      } else if (result.status === 'not_found') {
-        setError('User not found');
       } else {
-        setError('Failed to impersonate user');
+        setError(data.message || 'Failed to impersonate user');
       }
     } catch (error) {
       setError('An error occurred');
