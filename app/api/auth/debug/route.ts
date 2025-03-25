@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-// Only enable full debug info in development
-const isDevelopment = process.env.NODE_ENV !== 'production';
+// Allow full debug info in development and preview environments, but not production
+const isDevelopment = process.env.VERCEL_ENV !== 'production';
 
 /**
  * Debug endpoint to check cookies and session status

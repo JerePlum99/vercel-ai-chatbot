@@ -17,7 +17,7 @@ const ROUTE_PATTERNS = {
   ] as const
 } as const;
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.VERCEL_ENV !== 'production';
 
 // Simple helper to check if path matches any pattern
 function matchesPattern(path: string, patterns: readonly string[]): boolean {
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
     // If token exists, validate it
     const sessionCookie = getSessionCookie(request, {
       cookiePrefix: "better-auth",
-      useSecureCookies: process.env.NODE_ENV === "production"
+      useSecureCookies: process.env.VERCEL_ENV === "production"
     });
 
     // If session is invalid, redirect to login

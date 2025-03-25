@@ -75,7 +75,7 @@ export const auth = betterAuth({
   // Set cookies and session options
   cookies: {
     prefix: "better-auth",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.VERCEL_ENV === "production",
     sameSite: "lax", // Ensure cookies work with redirects
     path: "/",       // Ensure cookies are available on all paths
   },

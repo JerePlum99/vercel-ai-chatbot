@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth/auth";
 
 // Dev-only register endpoint - should be disabled in production
 export async function POST(request: NextRequest) {
-  // Only allow in development
-  if (process.env.NODE_ENV === 'production') {
+  // Only block if we're in Vercel production (but allow in previews and local development)
+  // VERCEL_ENV can be 'production', 'preview', or undefined (local)
+  if (process.env.VERCEL_ENV === 'production') {
     return NextResponse.json(
-      { error: "This endpoint is only available in development" },
+      { error: "This endpoint is only available in development and preview environments" },
       { status: 403 }
     );
   }

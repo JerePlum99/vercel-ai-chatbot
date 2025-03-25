@@ -17,7 +17,7 @@ export async function saveChatModelAsCookie(model: string) {
     maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.VERCEL_ENV === 'production',
     sameSite: 'strict'
   });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 
 // Development mode flag for conditional logging
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const isDevelopment = process.env.VERCEL_ENV !== 'production';
 
 /**
  * Custom signout endpoint that ensures all cookies are properly cleared
