@@ -24,6 +24,7 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const host = request.headers.get('host') || 'unknown';
   const isDevelopment = process.env.VERCEL_ENV === 'development';
+  const vercelUrl = process.env.VERCEL_URL;
   
   // Debug information for cookie troubleshooting
   const allCookies = request.cookies.getAll();
@@ -31,8 +32,10 @@ export async function middleware(request: NextRequest) {
   const hasBetterAuthCookie = allCookies.some(c => c.name.startsWith('better-auth'));
 
   console.log(`[Middleware] Path: ${path}, Host: ${host}, ENV: ${process.env.VERCEL_ENV}`);
+  console.log(`[Middleware] VERCEL_URL: ${vercelUrl}`);
   console.log(`[Middleware] Cookies: ${cookieNames.join(', ')}`);
   console.log(`[Middleware] Has BetterAuth cookie: ${hasBetterAuthCookie}`);
+  console.log(`[Middleware] Cookie details:`, allCookies.map(c => ({ name: c.name, value: c.value ? '[PRESENT]' : '[EMPTY]' })));
   
   // Quick exit for public routes
   if (PUBLIC_ROUTES.some(route => path === route || path.startsWith(`${route}/`))) {
