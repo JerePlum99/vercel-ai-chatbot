@@ -28,6 +28,7 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
 import { SuggestedActions } from './suggested-actions';
+import { DeepResearchButton } from './deep-research-button';
 import equal from 'fast-deep-equal';
 
 function PureMultimodalInput({
@@ -255,16 +256,22 @@ function PureMultimodalInput({
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
-        <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
+        <div className="flex items-center gap-1">
+          <DeepResearchButton className="text-muted-foreground" />
+          <PureAttachmentsButton
+            fileInputRef={fileInputRef}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
         {isLoading ? (
-          <StopButton stop={stop} setMessages={setMessages} />
+          <PureStopButton stop={stop} setMessages={setMessages} />
         ) : (
-          <SendButton
-            input={input}
+          <PureSendButton
             submitForm={submitForm}
+            input={input}
             uploadQueue={uploadQueue}
           />
         )}

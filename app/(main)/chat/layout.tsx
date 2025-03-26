@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarHistory } from '@/components/chat/sidebar/sidebar-history';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { DeepResearchProvider } from '@/components/chat/tools/default/deep-research-context';
 
 import { auth } from '../../(auth)/auth';
 import Script from 'next/script';
@@ -28,7 +29,11 @@ export default async function Layout({
           <AppSidebar user={session?.user} title="Chat" showNewChat>
             <SidebarHistory user={session?.user} />
           </AppSidebar>
-          <SidebarInset className="flex-1">{children}</SidebarInset>
+          <SidebarInset className="flex-1">
+            <DeepResearchProvider>
+              {children}
+            </DeepResearchProvider>
+          </SidebarInset>
         </SidebarProvider>
       </div>
     </>

@@ -25,6 +25,8 @@ import {
   ExaFindSimilarResult,
   ExaGetContentsResult 
 } from '../tools/default/exa-search';
+import { ResearchProgress } from '../tools/default/research-progress';
+import { ResearchSummary } from '../tools/default/research-summary';
 import equal from 'fast-deep-equal';
 import { cn } from '@/lib/utils';
 import { Button } from '../../ui/button';
@@ -32,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from '../artifacts/document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { useDeepResearch } from '@/components/chat/tools/default/deep-research-context';
 
 // Define which tools should appear below the message (artifact manipulation tools)
 const ARTIFACT_TOOLS = ['createDocument', 'updateDocument', 'requestSuggestions'];
@@ -58,6 +61,7 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const { state: researchState } = useDeepResearch();
 
   // Separate tool invocations into information tools and artifact tools
   const toolInvocations = message.toolInvocations || [];
@@ -114,6 +118,8 @@ const PurePreviewMessage = ({
                           <ExaGetContentsResult title="Page Contents" response={result} />
                         ) : toolName === 'exaAnswer' ? (
                           <ExaAnswerResult title="AI Answer" answer={result.answer} sources={result.sources} />
+                        ) : toolName === 'deepResearch' ? (
+                          <ResearchSummary title="Deep Research Results" result={result} />
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
                         )}
@@ -133,6 +139,8 @@ const PurePreviewMessage = ({
                         <CompanyProfile isLoading={true} />
                       ) : toolName === 'exaSearch' || toolName === 'exaSearchAndContents' || toolName === 'exaFindSimilar' || toolName === 'exaGetContents' || toolName === 'exaAnswer' ? (
                         <div className="h-24 animate-pulse bg-muted rounded-lg" />
+                      ) : toolName === 'deepResearch' ? (
+                        <ResearchSummary title="Deep Research Results" isLoading={true} result={{success: true, data: {findings: [], analysis: '', completedSteps: 0, totalSteps: 1, createArtifact: false, topic: ''}}} />
                       ) : null}
                     </div>
                   );
@@ -285,7 +293,7 @@ export const PreviewMessage = memo(
     )
       return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
-
+    
     return true;
   },
 );
