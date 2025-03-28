@@ -1,25 +1,18 @@
-import Form from 'next/form';
+'use client';
 
-import { signOut } from '@/app/(auth)/auth';
+import { signOut } from '@/lib/auth/auth-client';
 
 export const SignOutForm = () => {
-  return (
-    <Form
-      className="w-full"
-      action={async () => {
-        'use server';
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
-        await signOut({
-          redirectTo: '/',
-        });
-      }}
+  return (
+    <button
+      onClick={handleSignOut}
+      className="w-full text-left px-1 py-0.5 text-red-500"
     >
-      <button
-        type="submit"
-        className="w-full text-left px-1 py-0.5 text-red-500"
-      >
-        Sign out
-      </button>
-    </Form>
+      Sign out
+    </button>
   );
 };

@@ -1,18 +1,75 @@
-import NextAuth from 'next-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-import { authConfig } from '@/app/(auth)/auth.config';
+const ROUTE_PATTERNS = {
+  public: [
+    '/login', 
+    '/register', 
+    '/api/auth',
+    '/api/auth/callback',
+    '/_next',
+    '/favicon.ico',
+  ] as const
+} as const;
 
-export default NextAuth(authConfig).auth;
+// Simple helper to check if path matches any pattern
+function matchesPattern(path: string, patterns: readonly string[]): boolean {
+  return patterns.some(pattern => 
+    path === pattern || 
+    path.startsWith(`${pattern}/`)
+  );
+}
+
+function setSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Skip middleware for public routes
+  if (matchesPattern(path, ROUTE_PATTERNS.public)) {
+    return setSecurityHeaders(NextResponse.next());
+  }
+
+  // Check for session cookie using Better Auth's utility
+  const sessionCookie = getSessionCookie(request, {
+    cookieName: "session_token",
+    cookiePrefix: "better-auth",
+    useSecureCookies: process.env.NODE_ENV !== 'development'
+  });
+
+  console.log('[Auth Debug] Cookie check:', {
+    found: !!sessionCookie,
+    environment: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+    cookieConfig: {
+      name: "session_token",
+      prefix: "better-auth",
+      secure: process.env.NODE_ENV !== 'development'
+    }
+  });
+
+  if (!sessionCookie) {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    return setSecurityHeaders(response);
+  }
+
+  return setSecurityHeaders(NextResponse.next());
+}
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (auth endpoints)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, google-icon.svg (public assets)
-     */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|google-icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+    // Protected routes
+    '/chat/:path*',
+    '/dashboard/:path*',
+    '/settings/:path*',
+    // Public routes that still need security headers
+    '/login',
+    '/register',
+    // Root path
+    '/'
+  ]
 };
