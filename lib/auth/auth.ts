@@ -25,6 +25,7 @@ export const auth = betterAuth({
   // Add advanced configuration to let DB handle UUID generation
   advanced: {
     generateId: false, // Let the database generate UUIDs instead of BetterAuth
+    debug: true, // Enable debug logging
   }, 
   // User model configuration
   user: {
@@ -63,11 +64,33 @@ export const auth = betterAuth({
   // Essential callback for admin status
   callbacks: {
     session: async ({ session, user }: { session: any; user: any }) => {
+      console.log('[Auth Debug] Session callback executing:', {
+        hasUser: !!user,
+        hasSession: !!session,
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          VERCEL_ENV: process.env.VERCEL_ENV,
+          VERCEL_URL: process.env.VERCEL_URL
+        }
+      });
+      
       if (session.user) {
         session.user.is_admin = user.is_admin || false;
       }
       return session;
     },
+    signIn: async ({ user, account }: { user: any; account: any }) => {
+      console.log('[Auth Debug] Sign in callback executing:', {
+        hasUser: !!user,
+        hasAccount: !!account,
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          VERCEL_ENV: process.env.VERCEL_ENV,
+          VERCEL_URL: process.env.VERCEL_URL
+        }
+      });
+      return true;
+    }
   },
   
   // Page URLs
