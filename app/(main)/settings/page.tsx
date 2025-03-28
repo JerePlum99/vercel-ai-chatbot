@@ -1,14 +1,10 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth/auth';
+import { auth } from '../../(auth)/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
 export default async function SettingsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
-  const user = session?.user;
+  const session = await auth();
   
   return (
     <div className="container py-10">
@@ -26,19 +22,19 @@ export default async function SettingsPage() {
             <div className="space-y-2">
               <Label>Email</Label>
               <div className="text-muted-foreground">
-                {user?.email || 'No email provided'}
+                {session?.user?.email || 'No email provided'}
               </div>
             </div>
             <div className="space-y-2">
               <Label>Name</Label>
               <div className="text-muted-foreground">
-                {user?.name || 'No name provided'}
+                {session?.user?.name || 'No name provided'}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
             <CardDescription>
@@ -53,7 +49,7 @@ export default async function SettingsPage() {
                   Receive email notifications about activity.
                 </p>
               </div>
-              <input type="checkbox" className="size-4" />
+              <input type="checkbox" className="h-4 w-4" />
             </div>
             
             <div className="flex items-center justify-between">
@@ -63,7 +59,7 @@ export default async function SettingsPage() {
                   Receive push notifications in browser.
                 </p>
               </div>
-              <input type="checkbox" className="size-4" defaultChecked />
+              <input type="checkbox" className="h-4 w-4" defaultChecked />
             </div>
           </CardContent>
           <CardFooter>

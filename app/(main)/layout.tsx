@@ -1,6 +1,8 @@
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
+
 import { AppNav } from '@/components/app-nav';
-import { auth } from '@/lib/auth/auth';
+
+import { auth } from '../(auth)/auth';
 import Script from 'next/script';
 
 export const experimental_ppr = true;
@@ -10,14 +12,7 @@ export default async function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get session and cookies in parallel
-  const [session, cookieStore] = await Promise.all([
-    auth.api.getSession({
-      headers: await headers()
-    }),
-    cookies()
-  ]);
-
+  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
 
   return (
