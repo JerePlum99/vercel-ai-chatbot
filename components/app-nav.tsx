@@ -41,27 +41,34 @@ export function AppNav({ user }: { user: any }) {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4">
-        <div className="flex">
+        <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="flex items-center gap-2 font-semibold mr-6"
+            className="flex items-center"
           >
-            {/* Logo or App Name */}
-            <span>AI Chatbot</span>
+            <Image
+              src="/brand/FEC_Horizontal_Black.png"
+              alt="Five Elms Capital"
+              width={150}
+              height={30}
+              priority
+              className="dark:invert"
+              quality={95}
+            />
           </Link>
 
           {/* Main Navigation */}
-          <div className="hidden sm:flex">
+          <div className="hidden sm:flex items-center">
             {navItems.map(({ path, label }) => (
               <Link
                 key={path}
                 href={path}
                 className={cn(
-                  'flex items-center px-4 text-sm font-medium transition-colors hover:text-primary',
+                  'flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors hover:bg-muted',
                   pathname === path || pathname.startsWith(`${path}/`)
-                    ? 'text-foreground'
+                    ? 'text-foreground bg-muted'
                     : 'text-muted-foreground'
                 )}
               >
@@ -75,33 +82,33 @@ export function AppNav({ user }: { user: any }) {
           <div className="ml-auto flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="rounded-full h-8 w-8 p-0">
+                <Button variant="ghost" className="rounded-full h-7 w-7 p-0">
                   <Image
                     src={user.image || `https://avatar.vercel.sh/${user.email}`}
                     alt={user.email ?? 'User Avatar'}
-                    width={32}
-                    height={32}
+                    width={28}
+                    height={28}
                     className="rounded-full"
                   />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    {user.name && <p className="font-medium">{user.name}</p>}
-                    {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <div className="flex items-center justify-start gap-2 p-1.5">
+                  <div className="flex flex-col space-y-0.5 leading-none">
+                    {user.name && <p className="text-sm font-medium">{user.name}</p>}
+                    {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="cursor-pointer"
+                  className="cursor-pointer text-xs py-1.5"
                   onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 >
                   {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="cursor-pointer"
+                  className="cursor-pointer text-xs py-1.5"
                   onSelect={handleSignOut}
                 >
                   Sign out

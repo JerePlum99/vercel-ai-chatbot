@@ -17,8 +17,9 @@ const nextConfig: NextConfig = {
       },
     ],
     minimumCacheTTL: 60, // Cache successful image loads for 60 seconds
-    deviceSizes: [32, 48, 64, 96], // We only use small avatar sizes
-    imageSizes: [], // We don't need additional sizes for avatars
+    deviceSizes: [32, 48, 64, 96, 128, 256, 384, 512], // Added larger sizes for brand assets
+    imageSizes: [16, 32, 48, 64, 96, 128, 256], // Added image sizes for optimal scaling
+    formats: ['image/webp'], // Use WebP for better quality/size ratio
   },
 };
 
