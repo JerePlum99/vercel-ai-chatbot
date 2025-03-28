@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth/auth';
+import { auth } from '@/app/(auth)/auth';
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -9,12 +9,9 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  // Verify user authentication with Better Auth
-  const session = await auth.api.getSession({
-    headers: request.headers
-  });
+  const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -29,7 +26,7 @@ export async function GET(request: Request) {
   }
 
   if (suggestion.userId !== session.user.id) {
-    return new Response('Unauthorized: Resource belongs to another user', { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   return Response.json(suggestions, { status: 200 });

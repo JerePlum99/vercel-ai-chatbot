@@ -1,14 +1,13 @@
 import { z } from 'zod';
-import { streamObject, tool } from 'ai';
-import type { DataStreamWriter } from 'ai';
+import { Session } from 'next-auth';
+import { DataStreamWriter, streamObject, tool } from 'ai';
 import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import { Suggestion } from '@/lib/db/schema';
 import { generateUUID } from '@/lib/utils';
 import { myProvider } from '../../models';
-import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 interface RequestSuggestionsProps {
-  session: MaybeAuthSession;
+  session: Session;
   dataStream: DataStreamWriter;
 }
 
@@ -24,14 +23,6 @@ export const requestSuggestions = ({
         .describe('The ID of the document to request edits'),
     }),
     execute: async ({ documentId }) => {
-      // Validate session before proceeding
-      if (!isAuthenticatedSession(session)) {
-        throw new Error('Authentication required to request suggestions');
-      }
-
-      // After this point, TypeScript knows session.user exists and has an id
-      const { user } = session;
-      
       const document = await getDocumentById({ id: documentId });
 
       if (!document || !document.content) {
@@ -75,14 +66,18 @@ export const requestSuggestions = ({
         suggestions.push(suggestion);
       }
 
-      await saveSuggestions({
-        suggestions: suggestions.map((suggestion) => ({
-          ...suggestion,
-          userId: user.id,
-          createdAt: new Date(),
-          documentCreatedAt: document.createdAt,
-        })),
-      });
+      if (session.user?.id) {
+        const userId = session.user.id;
+
+        await saveSuggestions({
+          suggestions: suggestions.map((suggestion) => ({
+            ...suggestion,
+            userId,
+            createdAt: new Date(),
+            documentCreatedAt: document.createdAt,
+          })),
+        });
+      }
 
       return {
         id: documentId,

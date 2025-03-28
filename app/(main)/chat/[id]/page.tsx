@@ -1,8 +1,7 @@
-import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth/auth';
+import { notFound } from 'next/navigation';
 
+import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat/chat';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
@@ -18,18 +17,14 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     notFound();
   }
 
-  // Get the session using Better Auth
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
-  const user = session?.user;
+  const session = await auth();
 
   if (chat.visibility === 'private') {
-    if (!user) {
+    if (!session || !session.user) {
       return notFound();
     }
 
-    if (user.id !== chat.userId) {
+    if (session.user.id !== chat.userId) {
       return notFound();
     }
   }
@@ -38,19 +33,32 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     id,
   });
 
-  // Get cookie store and read model preference
   const cookieStore = await cookies();
-  const modelFromCookie = cookieStore.get('chat-model');
-  const selectedModel = modelFromCookie?.value || DEFAULT_CHAT_MODEL;
+  const chatModelFromCookie = cookieStore.get('chat-model');
+
+  if (!chatModelFromCookie) {
+    return (
+      <>
+        <Chat
+          id={chat.id}
+          initialMessages={convertToUIMessages(messagesFromDb)}
+          selectedChatModel={DEFAULT_CHAT_MODEL}
+          selectedVisibilityType={chat.visibility}
+          isReadonly={session?.user?.id !== chat.userId}
+        />
+        <DataStreamHandler id={id} />
+      </>
+    );
+  }
 
   return (
     <>
       <Chat
         id={chat.id}
         initialMessages={convertToUIMessages(messagesFromDb)}
-        selectedChatModel={selectedModel}
+        selectedChatModel={chatModelFromCookie.value}
         selectedVisibilityType={chat.visibility}
-        isReadonly={user?.id !== chat.userId}
+        isReadonly={session?.user?.id !== chat.userId}
       />
       <DataStreamHandler id={id} />
     </>

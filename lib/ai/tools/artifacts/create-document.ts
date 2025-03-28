@@ -1,16 +1,14 @@
 import { generateUUID } from '@/lib/utils';
-import { tool } from 'ai';
+import { DataStreamWriter, tool } from 'ai';
 import { z } from 'zod';
-import type { DataStreamWriter } from 'ai';
-
+import { Session } from 'next-auth';
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
-import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 interface CreateDocumentProps {
-  session: MaybeAuthSession;
+  session: Session;
   dataStream: DataStreamWriter;
 }
 
@@ -23,11 +21,6 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
       kind: z.enum(artifactKinds),
     }),
     execute: async ({ title, kind }) => {
-      // Validate session before proceeding
-      if (!isAuthenticatedSession(session)) {
-        throw new Error('Authentication required to create documents');
-      }
-
       const id = generateUUID();
 
       dataStream.writeData({

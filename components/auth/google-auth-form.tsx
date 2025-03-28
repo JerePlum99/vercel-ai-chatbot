@@ -1,25 +1,12 @@
 'use client';
 
-import { signIn } from "@/lib/auth/auth-client";
+import { signInWithGoogle } from '@/app/(auth)/google-auth-actions';
 
 export function GoogleAuthForm() {
-  const handleGoogleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      await signIn.social({
-        provider: "google",
-        callbackURL: "/chat" // Better Auth will handle the redirect
-      });
-    } catch (error) {
-      console.error("Google sign-in error:", error);
-    }
-  };
-
   return (
     <form
       className="flex flex-col w-full"
-      onSubmit={handleGoogleSignIn}
+      action={signInWithGoogle}
     >
       <button
         type="submit"
