@@ -6,7 +6,7 @@ import { ArtifactKind } from '@/components/chat/artifacts/artifact';
 import { DataStreamWriter } from 'ai';
 import { Document } from '../db/schema';
 import { saveDocument } from '../db/queries';
-import { Session } from 'next-auth';
+import { MaybeAuthSession, isAuthenticatedSession } from '@/lib/auth/auth-types';
 
 export interface SaveDocumentProps {
   id: string;
@@ -20,14 +20,14 @@ export interface CreateDocumentCallbackProps {
   id: string;
   title: string;
   dataStream: DataStreamWriter;
-  session: Session;
+  session: MaybeAuthSession;
 }
 
 export interface UpdateDocumentCallbackProps {
   document: Document;
   description: string;
   dataStream: DataStreamWriter;
-  session: Session;
+  session: MaybeAuthSession;
 }
 
 export interface DocumentHandler<T = ArtifactKind> {
@@ -51,13 +51,14 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         session: args.session,
       });
 
-      if (args.session?.user?.id) {
+      if (isAuthenticatedSession(args.session)) {
+        const { user } = args.session;
         await saveDocument({
           id: args.id,
           title: args.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: user.id,
         });
       }
 
@@ -71,13 +72,14 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         session: args.session,
       });
 
-      if (args.session?.user?.id) {
+      if (isAuthenticatedSession(args.session)) {
+        const { user } = args.session;
         await saveDocument({
           id: args.document.id,
           title: args.document.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: user.id,
         });
       }
 

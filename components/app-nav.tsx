@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { User } from 'next-auth';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronUp } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { authClient } from '@/lib/auth/auth-client';
 import { useTheme } from 'next-themes';
 
 import { cn } from '@/lib/utils';
@@ -18,10 +17,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-export function AppNav({ user }: { user: User | undefined }) {
+// Accept any user object that has the required properties
+export function AppNav({ user }: { user: any }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { setTheme, theme } = useTheme();
-  
+
+  const handleSignOut = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push('/login');
+        }
+      }
+    });
+  };
+
   // Define navigation items with paths and labels
   const navItems = [
     { path: '/chat', label: 'Chat' },
@@ -30,32 +41,36 @@ export function AppNav({ user }: { user: User | undefined }) {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background">
-      <div className="flex h-16 items-center px-4 md:px-6">
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center font-semibold text-lg mr-6">
-            Chatbot
+    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <div className="flex h-14 items-center px-4">
+        <div className="flex">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-semibold mr-6"
+          >
+            {/* Logo or App Name */}
+            <span>AI Chatbot</span>
           </Link>
-          
-          <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
+
+          {/* Main Navigation */}
+          <div className="hidden sm:flex">
+            {navItems.map(({ path, label }) => (
               <Link
-                key={item.path}
-                href={item.path}
+                key={path}
+                href={path}
                 className={cn(
-                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.path || 
-                  (item.path === '/chat' && pathname.startsWith('/chat'))
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  'flex items-center px-4 text-sm font-medium transition-colors hover:text-primary',
+                  pathname === path || pathname.startsWith(`${path}/`)
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
                 )}
               >
-                {item.label}
+                {label}
               </Link>
             ))}
           </div>
         </div>
-        
+
         {user && (
           <div className="ml-auto flex items-center">
             <DropdownMenu>
@@ -87,7 +102,7 @@ export function AppNav({ user }: { user: User | undefined }) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
-                  onSelect={() => signOut({ redirectTo: '/' })}
+                  onSelect={handleSignOut}
                 >
                   Sign out
                 </DropdownMenuItem>

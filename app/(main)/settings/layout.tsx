@@ -1,11 +1,19 @@
-import { auth } from '../../(auth)/auth';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 
 export default async function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await auth(); // Ensure authentication
+  // Get session using Better Auth
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+  
+  if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
 
   return (
     <div className="container max-w-screen-xl mx-auto">

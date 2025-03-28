@@ -1,7 +1,11 @@
-import { auth } from '../../(auth)/auth';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth/auth';
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+  const user = session?.user;
   
   return (
     <div className="container p-4 md:p-6">
@@ -11,7 +15,7 @@ export default async function DashboardPage() {
         <div className="bg-card p-4 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold mb-2">Welcome</h2>
           <p className="text-muted-foreground">
-            Hello {session?.user?.name || session?.user?.email || 'User'}, welcome to your dashboard!
+            Hello {user?.name || user?.email || 'User'}, welcome to your dashboard!
           </p>
         </div>
         
