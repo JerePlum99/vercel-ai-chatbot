@@ -35,11 +35,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check for session cookie using Better Auth's utility
-  const sessionCookie = getSessionCookie(request, {
-    cookieName: "session_token",
-    cookiePrefix: "better-auth",
-    useSecureCookies: process.env.NODE_ENV !== 'development'
-  });
+  const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {
     const response = NextResponse.redirect(new URL("/login", request.url));
