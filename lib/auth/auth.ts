@@ -22,10 +22,21 @@ export const auth = betterAuth({
       verification: schema.verification
     }
   }),
-  // Add advanced configuration to let DB handle UUID generation
+  // Add advanced configuration
   advanced: {
     generateId: false, // Let the database generate UUIDs instead of BetterAuth
-    debug: true, // Enable debug logging
+    useSecureCookies: process.env.NODE_ENV !== 'development',
+    // Let Better Auth handle the cookie prefix
+    cookiePrefix: 'better-auth',
+    cookies: {
+      session_token: {
+        attributes: {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/"
+        }
+      }
+    }
   }, 
   // User model configuration
   user: {
@@ -61,16 +72,19 @@ export const auth = betterAuth({
     enabled: true,
   },
   
-  // Essential callback for admin status
+  // Essential callback for admin status and debug logging
   callbacks: {
     session: async ({ session, user }: { session: any; user: any }) => {
       console.log('[Auth Debug] Session callback executing:', {
-        hasUser: !!user,
         hasSession: !!session,
-        environment: {
-          NODE_ENV: process.env.NODE_ENV,
-          VERCEL_ENV: process.env.VERCEL_ENV,
-          VERCEL_URL: process.env.VERCEL_URL
+        hasUser: !!user,
+        environment: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV,
+        cookieConfig: {
+          name: "better-auth.session_token",
+          secure: process.env.NODE_ENV !== 'development',
+          sameSite: 'lax',
+          path: '/'
         }
       });
       
@@ -79,18 +93,6 @@ export const auth = betterAuth({
       }
       return session;
     },
-    signIn: async ({ user, account }: { user: any; account: any }) => {
-      console.log('[Auth Debug] Sign in callback executing:', {
-        hasUser: !!user,
-        hasAccount: !!account,
-        environment: {
-          NODE_ENV: process.env.NODE_ENV,
-          VERCEL_ENV: process.env.VERCEL_ENV,
-          VERCEL_URL: process.env.VERCEL_URL
-        }
-      });
-      return true;
-    }
   },
   
   // Page URLs
