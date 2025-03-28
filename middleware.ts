@@ -20,12 +20,18 @@ function matchesPattern(path: string, patterns: readonly string[]): boolean {
   );
 }
 
+function setSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  
+
   // Skip middleware for public routes
   if (matchesPattern(path, ROUTE_PATTERNS.public)) {
-    return NextResponse.next();
+    return setSecurityHeaders(NextResponse.next());
   }
 
   // Check for session cookie using Better Auth's utility
@@ -37,17 +43,10 @@ export async function middleware(request: NextRequest) {
 
   if (!sessionCookie) {
     const response = NextResponse.redirect(new URL("/login", request.url));
-    // Add security headers
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    return response;
+    return setSecurityHeaders(response);
   }
 
-  // Add security headers
-  const response = NextResponse.next();
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  return response;
+  return setSecurityHeaders(NextResponse.next());
 }
 
 export const config = {

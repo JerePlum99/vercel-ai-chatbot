@@ -3,11 +3,45 @@
 import { useState } from 'react';
 import { signIn, signUp } from '@/lib/auth/auth-client';
 
+const DEV_PASSWORD = process.env.NEXT_PUBLIC_DEV_PASSWORD || 'dev-password';
+const isDevelopment = !process.env.VERCEL_ENV || ['development', 'preview'].includes(process.env.VERCEL_ENV);
+
 export function DevImpersonateForm() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!isDevelopment) return null;
+
+  async function tryDevSignIn(email: string, name: string) {
+    try {
+      await signIn.email({
+        email,
+        password: DEV_PASSWORD,
+        callbackURL: '/chat'
+      });
+    } catch (error: any) {
+      if (!error?.message?.includes('not found')) throw error;
+
+      await signUp.email({
+        email,
+        password: DEV_PASSWORD,
+        name: name || email.split('@')[0],
+        fetchOptions: {
+          headers: {
+            'X-User-Admin': 'true'
+          }
+        }
+      });
+
+      await signIn.email({
+        email,
+        password: DEV_PASSWORD,
+        callbackURL: '/chat'
+      });
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,55 +49,14 @@ export function DevImpersonateForm() {
     setIsLoading(true);
 
     try {
-      // Try to sign in first
-      await signIn.email({
-        email,
-        password: 'dev-password',
-        callbackURL: '/chat'
-      });
-      return; // If sign in succeeds, we're done
-    } catch (error: any) {
-      // If error is not about user not existing, show the error
-      if (!error?.message?.includes('not found')) {
-        console.error('Dev sign in error:', error);
-        setError(error?.message || 'Authentication failed');
-        setIsLoading(false);
-        return;
-      }
-
-      // User doesn't exist, try to sign up
-      try {
-        await signUp.email({
-          email,
-          password: 'dev-password',
-          name: name || email.split('@')[0],
-          fetchOptions: {
-            headers: {
-              'X-User-Admin': 'true'
-            }
-          }
-        });
-
-        // After successful signup, sign in
-        await signIn.email({
-          email,
-          password: 'dev-password',
-          callbackURL: '/chat'
-        });
-      } catch (signUpError: any) {
-        console.error('Dev sign up error:', signUpError);
-        setError(signUpError?.message || 'Failed to create account');
-      }
+      await tryDevSignIn(email, name);
+    } catch (err: any) {
+      console.error('Dev auth error:', err);
+      setError(err?.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Only show in development or preview
-  const isDevelopment = !process.env.VERCEL_ENV || ['development', 'preview'].includes(process.env.VERCEL_ENV);
-  if (!isDevelopment) {
-    return null;
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -74,7 +67,6 @@ export function DevImpersonateForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter email for dev login"
           required
-          disabled={isLoading}
           className="w-full px-3 py-2 border rounded-md"
         />
         <input
@@ -82,17 +74,16 @@ export function DevImpersonateForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter name (optional)"
-          disabled={isLoading}
           className="w-full px-3 py-2 border rounded-md"
         />
       </div>
-      
+
       {error && (
         <p className="text-sm text-red-500">
           {error}
         </p>
       )}
-      
+
       <button
         type="submit"
         disabled={isLoading}
@@ -106,4 +97,4 @@ export function DevImpersonateForm() {
       </p>
     </form>
   );
-} 
+}
